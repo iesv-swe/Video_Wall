@@ -1,0 +1,56 @@
+/*
+==================================================================================
+  HOW TO UPDATE THE SCREENS - A SIMPLE GUIDE
+  (This is the only file you need to edit!)
+==================================================================================
+
+STEP 1: CHOOSE YOUR MODE
+  "mode": "stretch"     -> One giant slide across all 4 screens.
+  "mode": "individual"  -> 4 separate screens doing different things.
+
+STEP 2: EDIT THE CONTENT
+  - If "stretch": Edit the "stretch_content" section.
+  - If "individual": Edit the "individual_content" section.
+
+IMPORTANT:
+  - For Google Slides: Go to File > Share > Publish to web > Publish. Copy that link.
+  - NO STUDENT DATA: This file is public. Do not use student names.
+==================================================================================
+*/
+
+{
+  "mode": "individual",
+
+  "stretch_content": {
+    "type": "google_slide",
+    "url": "https://docs.google.com/presentation/d/e/YOUR_PUBLISHED_SLIDE_LINK_HERE/embed?rm=minimal&loop=true&delayms=5000"
+  },
+
+  "individual_content": {
+    
+    "device-1": {
+      "comment": "Top-Left Screen",
+      "type": "google_slide",
+      "url": "https://docs.google.com/presentation/d/e/YOUR_PUBLISHED_SLIDE_LINK_HERE/embed?rm=minimal&loop=true&delayms=5000"
+    },
+    
+    "device-2": {
+      "comment": "Top-Right Screen",
+      "type": "google_slide",
+      "url": "https://docs.google.com/presentation/d/e/YOUR_PUBLISHED_SLIDE_LINK_HERE/embed?rm=minimal&loop=true&delayms=5000"
+    },
+    
+    "device-3": {
+      "comment": "Bottom-Left Screen",
+      "type": "text",
+      "headline": "Welcome to Our School",
+      "body": "Events start at 9:00 AM in the main hall."
+    },
+    
+    "device-4": {
+      "comment": "Bottom-Right Screen",
+      "type": "google_slide",
+      "url": "https://docs.google.com/presentation/d/e/YOUR_PUBLISHED_SLIDE_LINK_HERE/embed?rm=minimal&loop=true&delayms=5000"
+    }
+  }
+}
