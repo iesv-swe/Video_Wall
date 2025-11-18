@@ -1,0 +1,55 @@
+/* STYLE SHEET
+  Controls colors, fonts, and the "Stretch" layout logic.
+*/
+
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden; /* Hides scrollbars */
+    background-color: black;
+}
+
+.content-container {
+    display: none; /* Hidden by default */
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+/* Text Styling */
+#text-wrapper, #error-wrapper {
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+#text-headline { font-size: 4em; margin-bottom: 20px; }
+#text-body { font-size: 2em; }
+#error-wrapper { color: #ff6b6b; }
+
+/* Video Styling */
+#video-wrapper { padding: 0; }
+#kiosk-video { width: 100%; height: 100%; object-fit: cover; }
+
+/* Slide Styling */
+#slide-wrapper iframe { width: 100%; height: 100%; border: 0; }
+
+/* STRETCH MODE MAGIC */
+#stretch-wrapper { position: relative; overflow: hidden; }
+
+#stretch-wrapper iframe,
+#stretch-wrapper video {
+    position: absolute;
+    width: 200%;   /* 200% wide = 2 screens wide */
+    height: 200%;  /* 200% tall = 2 screens tall */
+    border: 0;
+    transform-origin: 0 0; 
+    /* The specific quadrant shift is handled in app.js */
+}
