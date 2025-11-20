@@ -1,36 +1,34 @@
-/*
-  STYLE SHEET - LOOK AND LAYOUT
-  This file handles colors, fonts, and the "Stretch" layout logic.
-*/
+body, html { 
+    margin: 0; padding: 0; width: 100vw; height: 100vh; 
+    overflow: hidden; background-color: black; 
+}
+.content-container { 
+    display: none; width: 100%; height: 100%; box-sizing: border-box; 
+}
 
-/* --- Basic Setup (Do not change) --- */
-body, html { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background-color: black; }
-.content-container { display: none; width: 100%; height: 100%; box-sizing: border-box; }
-
-/* --- Text/Error Styling --- */
+/* Centered Text Wrappers */
 #text-wrapper, #error-wrapper, #setup-wrapper {
-    color: white; font-family: sans-serif; padding: 40px; display: flex; 
-    flex-direction: column; justify-content: center; align-items: center; text-align: center;
+    color: white; font-family: sans-serif; padding: 40px; 
+    display: flex; flex-direction: column; 
+    justify-content: center; align-items: center; text-align: center;
 }
 #error-wrapper { color: #ff6b6b; }
 #text-headline { font-size: 4em; margin-bottom: 20px; }
 #text-body { font-size: 2em; }
 
-/* --- Video/Slide Styling --- */
+/* Video & Slide Wrappers */
 #video-wrapper { padding: 0; }
 #kiosk-video { width: 100%; height: 100%; object-fit: cover; }
 #slide-wrapper iframe { width: 100%; height: 100%; border: 0; }
 
-/* --- STRETCH MODE MAGIC (Do not change) --- */
+/* Stretch Mode */
 #stretch-wrapper { position: relative; overflow: hidden; }
 .stretched-element {
-    position: absolute; width: 200%; height: 200%; border: 0; transform-origin: 0 0;
+    position: absolute; width: 200%; height: 200%; 
+    border: 0; transform-origin: 0 0; 
 }
 
-/* SCREEN ROTATION CORRECTION
-  This class rotates the content 180 degrees. It is applied by app.js 
-  to the main body of the page only for screens 1 and 2. 
-*/
+/* ROTATION CORRECTION for screens 1 & 2 */
 .flip-180 {
     transform: rotate(180deg);
 }
