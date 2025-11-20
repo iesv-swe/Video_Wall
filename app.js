@@ -1,45 +1,44 @@
 /*
-==================================================================================
-  THE APP LOGIC (The Brain)
-  This file handles the logic and is set up for the temporary one-OU mode.
-  It includes the screen flip correction for screens 1 and 2.
-==================================================================================
+  THE APP LOGIC
+  Handles routing, content loading, and the 180-degree flip correction.
 */
 window.onload = function() {
 
-    // 1. Define all our elements (placeholders from index.html)
     const allWrappers = {
-        stretch: document.getElementById('stretch-wrapper'), slide: document.getElementById('slide-wrapper'),
-        text: document.getElementById('text-wrapper'), video: document.getElementById('video-wrapper'),
-        error: document.getElementById('error-wrapper'), setup: document.getElementById('setup-wrapper')
+        stretch: document.getElementById('stretch-wrapper'), 
+        slide: document.getElementById('slide-wrapper'),
+        text: document.getElementById('text-wrapper'), 
+        video: document.getElementById('video-wrapper'),
+        error: document.getElementById('error-wrapper'), 
+        setup: document.getElementById('setup-wrapper')
     };
 
     const params = new URLSearchParams(window.location.search);
     let deviceId = params.get('device');
 
-    // 2. DECISION TIME: Check if the Admin Console gave us an ID
+    // DECISION TIME: Check if we have an ID
     if (deviceId) {
-        // ID found (Future: from child OU URL): skip setup
         loadContent(deviceId);
     } else {
-        // NO ID found (Current: single parent OU): show setup buttons
         showSetupScreen();
     }
 
-    // --- CORE LOGIC FUNCTIONS ---
+    // --- CORE FUNCTIONS ---
 
     function loadContent(id) {
-        // *** CRITICAL ROTATION CORRECTION: ***
-        // If it's screen 1 or 2, we apply the 180-degree flip class to the entire body.
+        // *** ROTATION CORRECTION ***
+        // Apply 180-degree flip class to body for screens 1 & 2
         if (id === '1' || id === '2') {
             document.body.classList.add('flip-180');
         } else {
             document.body.classList.remove('flip-180');
         }
 
-        // Fetch the config (content.json)
         fetch('content.json')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
             .then(config => {
                 if (config.mode === 'stretch') {
                     showStretchMode(config.stretch_content, id);
@@ -48,34 +47,33 @@ window.onload = function() {
                     showIndividualMode(content, id);
                 }
             })
-            .catch(err => showError('Config Error', 'Could not load content.json. Check file syntax.'));
+            .catch(err => {
+                showError('Config Error', 'Could not load content.json. Check file syntax.');
+                console.error(err);
+            });
     }
 
-    // --- HELPER FUNCTIONS ---
-
     function showSetupScreen() {
-        // HTML structure for the manual button menu
         const setupDiv = document.createElement('div');
-        setupDiv.innerHTML = `<h1 style="color:white; text-align:center;">**SETUP MODE**: Click this screen's position.</h1>
+        setupDiv.innerHTML = `<h1 style="color:white; text-align:center;">SETUP MODE: Select Screen Position</h1>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 80vh; padding: 20px;">
-                <button onclick="selectDevice('1')" style="font-size:3em; background:#4CAF50; color:white; border:none;">1 (Top-L)</button>
-                <button onclick="selectDevice('2')" style="font-size:3em; background:#2196F3; color:white; border:none;">2 (Top-R)</button>
-                <button onclick="selectDevice('3')" style="font-size:3em; background:#FF9800; color:white; border:none;">3 (Bot-L)</button>
-                <button onclick="selectDevice('4')" style="font-size:3em; background:#9C27B0; color:white; border:none;">4 (Bot-R)</button>
+                <button onclick="selectDevice('1')" style="font-size:3em; background:#4CAF50; color:white; border:none; border-radius: 8px;">1 (Top-L)</button>
+                <button onclick="selectDevice('2')" style="font-size:3em; background:#2196F3; color:white; border:none; border-radius: 8px;">2 (Top-R)</button>
+                <button onclick="selectDevice('3')" style="font-size:3em; background:#FF9800; color:white; border:none; border-radius: 8px;">3 (Bot-L)</button>
+                <button onclick="selectDevice('4')" style="font-size:3em; background:#9C27B0; color:white; border:none; border-radius: 8px;">4 (Bot-R)</button>
             </div>`;
         
         window.selectDevice = function(id) {
-            // Assign ID and load content when a button is clicked
             loadContent(id); 
         };
 
         showWrapper('setup');
+        allWrappers.setup.innerHTML = ''; 
         allWrappers.setup.appendChild(setupDiv);
     }
 
     function showStretchMode(content, id) {
         let element;
-        // Create the element (iframe or video)
         if (content.type === 'google_slide') {
             element = document.createElement('iframe');
             element.src = content.url;
@@ -83,10 +81,12 @@ window.onload = function() {
             element = document.createElement('video');
             element.src = content.url;
             element.autoplay = true; element.muted = true; element.loop = true;
+        } else {
+            return showError('Config Error', 'Stretch mode only supports google_slide or video');
         }
-        element.className = 'stretched-element'; // Add the class for 200% size
+        element.className = 'stretched-element'; 
 
-        // Pan to the correct quadrant using CSS translate
+        // Pan to the correct quadrant
         const offsets = {
             '1': 'translate(0, 0)', '2': 'translate(-50%, 0)', 
             '3': 'translate(0, -50%)', '4': 'translate(-50%, -50%)'
@@ -124,10 +124,10 @@ window.onload = function() {
     }
 
     function showWrapper(activeKey) {
-        // This helper function toggles visibility for the correct content box
         for (let key in allWrappers) {
             if(allWrappers[key]) {
-                allWrappers[key].style.display = (key === activeKey) ? (key === 'text' || key === 'error' || key === 'setup' ? 'flex' : 'block') : 'none';
+                const displayType = (key === 'text' || key === 'error' || key === 'setup') ? 'flex' : 'block';
+                allWrappers[key].style.display = (key === activeKey) ? displayType : 'none';
             }
         }
     }
