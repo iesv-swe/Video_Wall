@@ -1,108 +1,123 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>School Digital Signage</title>
-    <!-- CSS IS NOW INSIDE THE HTML -->
+    <title>School Video Wall - Hardcoded</title>
     <style>
+        /* --- CSS STYLES --- */
         body, html { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background-color: black; }
         .content-container { display: none; width: 100%; height: 100%; box-sizing: border-box; }
+        
+        /* Centering for Text/Setup */
         #text-wrapper, #error-wrapper, #setup-wrapper {
             color: white; font-family: sans-serif; padding: 40px; display: flex; 
             flex-direction: column; justify-content: center; align-items: center; text-align: center;
         }
         #error-wrapper { color: #ff6b6b; }
-        #text-headline { font-size: 4em; margin-bottom: 20px; }
-        #text-body { font-size: 2em; }
-        #video-wrapper { padding: 0; }
+        
+        /* Content Elements */
         #kiosk-video { width: 100%; height: 100%; object-fit: cover; }
         #slide-wrapper iframe { width: 100%; height: 100%; border: 0; }
+        
+        /* Stretch Mode Magic */
         #stretch-wrapper { position: relative; overflow: hidden; }
         .stretched-element { position: absolute; width: 200%; height: 200%; border: 0; transform-origin: 0 0; }
+        
+        /* Flip Correction */
         .flip-180 { transform: rotate(180deg); }
     </style>
 </head>
 <body>
+
+    <!-- --- HTML PLACEHOLDERS --- -->
     <div id="stretch-wrapper" class="content-container"></div>
     <div id="slide-wrapper" class="content-container"></div>
+    
     <div id="text-wrapper" class="content-container">
         <h1 id="text-headline"></h1>
         <p id="text-body"></p>
     </div>
-    <div id="video-wrapper" class="content-container">
-        <video id="kiosk-video" src="" autoplay muted loop></video>
-    </div>
+
+    <div id="setup-wrapper" class="content-container"></div>
     <div id="error-wrapper" class="content-container">
         <h1 id="error-headline">Error</h1>
         <p id="error-body"></p>
     </div>
-    <div id="setup-wrapper" class="content-container"></div>
 
-    <!-- JS IS NOW INSIDE THE HTML -->
+    <!-- --- JAVASCRIPT LOGIC --- -->
     <script>
+        // *** CONFIGURATION AREA ***
+        // Update these settings right here!
+        const CONFIG = {
+            "mode": "stretch", // Options: "stretch" or "individual"
+            
+            "stretch_content": {
+                "type": "google_slide",
+                // PASTE YOUR MASTER SLIDE LINK HERE:
+                "url": "https://docs.google.com/presentation/d/e/2PACX-1vS-pDGq4JMk7HN-Q5efabn1PESqaogoxKGAZxv9kWmHQyyN4khR9qp1x15_-gCoKG-4SkB4KKJcZLO0/pub?start=true&loop=true&delayms=5000&rm=minimal"
+            },
+            
+            "individual_content": {
+                "device-1": { "type": "google_slide", "url": "PASTE_SLIDE_1_LINK_HERE" },
+                "device-2": { "type": "google_slide", "url": "PASTE_SLIDE_2_LINK_HERE" },
+                "device-3": { "type": "text", "headline": "Welcome", "body": "System Online." },
+                "device-4": { "type": "google_slide", "url": "PASTE_SLIDE_4_LINK_HERE" }
+            }
+        };
+
         window.onload = function() {
             const allWrappers = {
                 stretch: document.getElementById('stretch-wrapper'), slide: document.getElementById('slide-wrapper'),
-                text: document.getElementById('text-wrapper'), video: document.getElementById('video-wrapper'),
-                error: document.getElementById('error-wrapper'), setup: document.getElementById('setup-wrapper')
+                text: document.getElementById('text-wrapper'), error: document.getElementById('error-wrapper'), 
+                setup: document.getElementById('setup-wrapper')
             };
+
             const params = new URLSearchParams(window.location.search);
-            let deviceId = params.get('device');
+            const deviceId = params.get('device');
 
             if (deviceId) { loadContent(deviceId); } 
             else { showSetupScreen(); }
 
             function loadContent(id) {
+                // 1. Apply Rotation
                 if (id === '1' || id === '2') { document.body.classList.add('flip-180'); } 
                 else { document.body.classList.remove('flip-180'); }
 
-                fetch('content.json')
-                    .then(response => {
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        return response.json();
-                    })
-                    .then(config => {
-                        if (config.mode === 'stretch') { showStretchMode(config.stretch_content, id); } 
-                        else { showIndividualMode(config.individual_content['device-' + id], id); }
-                    })
-                    .catch(err => {
-                        showError('Config Error', 'Could not load content.json. Check syntax.');
-                        console.error(err);
-                    });
+                // 2. Load Config (Directly from variable, no fetch needed!)
+                try {
+                    if (CONFIG.mode === 'stretch') { showStretchMode(CONFIG.stretch_content, id); } 
+                    else { showIndividualMode(CONFIG.individual_content['device-' + id], id); }
+                } catch (e) {
+                    showError("Logic Error", e.message);
+                }
             }
 
             function showSetupScreen() {
                 const setupDiv = document.createElement('div');
-                setupDiv.innerHTML = `<h1 style="color:white; text-align:center;">SETUP MODE</h1>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 80vh; padding: 20px;">
-                        <button onclick="selectDevice('1')" style="font-size:3em; background:#4CAF50; color:white; border:none;">1 (Top-L)</button>
-                        <button onclick="selectDevice('2')" style="font-size:3em; background:#2196F3; color:white; border:none;">2 (Top-R)</button>
-                        <button onclick="selectDevice('3')" style="font-size:3em; background:#FF9800; color:white; border:none;">3 (Bot-L)</button>
-                        <button onclick="selectDevice('4')" style="font-size:3em; background:#9C27B0; color:white; border:none;">4 (Bot-R)</button>
+                setupDiv.innerHTML = `<h1>SETUP MODE</h1><div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; height:80vh;">
+                    <button onclick="selectDevice('1')" style="font-size:3em; background:#4CAF50;">1 (Top-L)</button>
+                    <button onclick="selectDevice('2')" style="font-size:3em; background:#2196F3;">2 (Top-R)</button>
+                    <button onclick="selectDevice('3')" style="font-size:3em; background:#FF9800;">3 (Bot-L)</button>
+                    <button onclick="selectDevice('4')" style="font-size:3em; background:#9C27B0;">4 (Bot-R)</button>
                     </div>`;
                 window.selectDevice = function(id) { loadContent(id); };
                 showWrapper('setup');
-                allWrappers.setup.innerHTML = ''; 
                 allWrappers.setup.appendChild(setupDiv);
             }
 
             function showStretchMode(content, id) {
-                let element;
-                if (content.type === 'google_slide') {
-                    element = document.createElement('iframe'); element.src = content.url;
-                } else if (content.type === 'video') {
-                    element = document.createElement('video'); element.src = content.url; element.autoplay = true; element.muted = true; element.loop = true;
-                }
-                element.className = 'stretched-element'; 
+                let element = document.createElement('iframe');
+                element.src = content.url;
+                element.className = 'stretched-element';
                 const offsets = { '1': 'translate(0, 0)', '2': 'translate(-50%, 0)', '3': 'translate(0, -50%)', '4': 'translate(-50%, -50%)' };
-                if (element && offsets[id]) {
+                if (offsets[id]) {
                     element.style.transform = offsets[id];
                     showWrapper('stretch');
-                    allWrappers.stretch.innerHTML = ''; allWrappers.stretch.appendChild(element);
+                    allWrappers.stretch.innerHTML = ''; 
+                    allWrappers.stretch.appendChild(element);
                 }
             }
 
             function showIndividualMode(content, id) {
-                if (!content) return showError('Config Error', `No content for Device ${id}`);
                 if (content.type === 'google_slide') {
                     const iframe = document.createElement('iframe'); iframe.src = content.url;
                     allWrappers.slide.innerHTML = ''; allWrappers.slide.appendChild(iframe); showWrapper('slide');
@@ -122,8 +137,9 @@
             function showWrapper(activeKey) {
                 for (let key in allWrappers) {
                     if(allWrappers[key]) {
-                        const displayType = (key === 'text' || key === 'error' || key === 'setup') ? 'flex' : 'block';
-                        allWrappers[key].style.display = (key === activeKey) ? displayType : 'none';
+                        allWrappers[key].style.display = (key === activeKey) ? 'flex' : 'none';
+                        if (key === 'stretch' && activeKey === 'stretch') allWrappers[key].style.display = 'block';
+                        if (key === 'slide' && activeKey === 'slide') allWrappers[key].style.display = 'block';
                     }
                 }
             }
