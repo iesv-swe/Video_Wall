@@ -1,20 +1,3 @@
-/*
-==================================================================================
-  HOW TO UPDATE THE SCREENS - A SIMPLE GUIDE
-  (This is the only file you need to edit to change content!)
-==================================================================================
-
-STEP 1: CHOOSE YOUR DISPLAY MODE
-  "mode": "stretch"     -> Shows one giant slide (from the "stretch_content" link) across all 4 screens.
-  "mode": "individual"  -> Shows 4 separate pieces of content (from the "individual_content" links).
-
-STEP 2: EDIT THE CONTENT
-  - If "stretch": Change the "url" in the "stretch_content" section.
-  - If "individual": Find the "device-X" you want to change, and update the "type" (slide/text/video) and the content fields (url or headline/body).
-
-TIP: To get a Google Slide URL, go to File > Share > Publish to web > Publish, and then copy that link.
-==================================================================================
-*/
 {
   "mode": "stretch",
   "stretch_content": {
