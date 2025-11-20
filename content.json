@@ -16,7 +16,7 @@ TIP: To get a Google Slide URL, go to File > Share > Publish to web > Publish, a
 ==================================================================================
 */
 {
-  "mode": "individual",
+  "mode": "stretch",
   
   "stretch_content": {
     "type": "google_slide",
@@ -26,7 +26,7 @@ TIP: To get a Google Slide URL, go to File > Share > Publish to web > Publish, a
   "individual_content": {
     "device-1": { "comment": "Top-Left Screen (Content is auto-flipped 180° for physical screen mounting)", "type": "google_slide", "url": "PASTE_SLIDE_1_URL_HERE" },
     "device-2": { "comment": "Top-Right Screen (Content is auto-flipped 180° for physical screen mounting)", "type": "google_slide", "url": "PASTE_SLIDE_2_URL_HERE" },
-    "device-3": { "comment": "Bottom-Left Screen", "type": "text", "headline": "Welcome", "body": "Custom text for this screen." },
+    "device-3": { "comment": "Bottom-Left Screen", "type": "text", "headline": "Welcome to IESV", "body": "New Video Wall." },
     "device-4": { "comment": "Bottom-Right Screen", "type": "google_slide", "url": "PASTE_SLIDE_4_URL_HERE" }
   }
 }
