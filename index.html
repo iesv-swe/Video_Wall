@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>School Video Wall - All-In-One</title>
+    <title>School Video Wall - Individual Screens</title>
     <!-- CSS STYLES ARE EMBEDDED HERE -->
     <style>
         /* Global Styles: Ensures full screen, black background, and no scrolling */
@@ -14,11 +14,9 @@
             flex-direction: column; justify-content: center; align-items: center; text-align: center;
         }
         #error-wrapper { color: #ff6b6b; }
-        #slide-wrapper iframe { width: 100%; height: 100%; border: 0; }
         
-        /* Stretch Mode Magic: Makes the iframe 2x size to span 4 screens */
-        #stretch-wrapper { position: relative; overflow: hidden; }
-        .stretched-element { position: absolute; width: 200%; height: 200%; border: 0; transform-origin: 0 0; }
+        /* Content Wrappers */
+        #slide-wrapper iframe { width: 100%; height: 100%; border: 0; }
         
         /* Flip Correction for Screens 1 & 2 */
         .flip-180 { transform: rotate(180deg); }
@@ -27,14 +25,11 @@
 <body>
 
     <!-- --- HTML PLACEHOLDERS --- -->
-    <div id="stretch-wrapper" class="content-container"></div>
     <div id="slide-wrapper" class="content-container"></div>
-    
     <div id="text-wrapper" class="content-container">
         <h1 id="text-headline"></h1>
         <p id="text-body"></p>
     </div>
-
     <div id="error-wrapper" class="content-container">
         <h1 id="error-headline">Error</h1>
         <p id="error-body"></p>
@@ -43,76 +38,71 @@
     <!-- --- JAVASCRIPT LOGIC (Hardcoded) --- -->
     <script>
         // *** CONFIGURATION AREA (HARDCODED) ***
+        // These are the specific, unique URLs you provided, converted to the necessary 'embed' format.
         const CONFIG = {
-            "mode": "stretch", // <--- CRITICAL CHANGE: SWITCHED TO STRETCH MODE
-            
-            "stretch_content": {
-                "type": "google_slide",
-                // PASTE YOUR MASTER SLIDE LINK HERE:
-                "url": "https://docs.google.com/presentation/d/e/2PACX-1vS-pDGq4JMk7HN-Q5efabn1PESqaogoxKGAZxv9kWmHQyyN4khR9qp1x15_-gCoKG-4SkB4KKJcZLO0/pub?start=true&loop=true&delayms=5000&rm=minimal"
-            },
+            // SET MODE TO INDIVIDUAL PERMANENTLY
+            "mode": "individual", 
             
             "individual_content": {
-                // Testing pure text content to bypass iframe/slide issues
-                "device-1": { "type": "text", "headline": "SCREEN 1", "body": "180 ROTATION CHECK - TOP LEFT" },
-                "device-2": { "type": "text", "headline": "SCREEN 2", "body": "180 ROTATION CHECK - TOP RIGHT" },
-                "device-3": { "type": "text", "headline": "SCREEN 3", "body": "BOTTOM LEFT" },
-                "device-4": { "type": "text", "headline": "SCREEN 4", "body": "BOTTOM RIGHT" }
+                "device-1": { 
+                    "type": "google_slide", 
+                    "url": "https://docs.google.com/presentation/d/e/1DyY4bD7MmKKQI8FE-Nc3RiuyiLcfNCyoW3FUTPAF1_s/embed?start=true&loop=true&delayms=5000&rm=minimal" 
+                },
+                "device-2": { 
+                    "type": "google_slide", 
+                    "url": "https://docs.google.com/presentation/d/e/1VpDueXN_OsqEwVEAz2HYucnNUs1W9M4WcR5xHuQTDQQ/embed?start=true&loop=true&delayms=5000&rm=minimal" 
+                },
+                "device-3": { 
+                    "type": "google_slide", 
+                    "url": "https://docs.google.com/presentation/d/e/1NmctG-tMBiJZIqzzTygLbOgx1XxK-4VOto03sNqrt6g/embed?start=true&loop=true&delayms=5000&rm=minimal" 
+                },
+                "device-4": { 
+                    "type": "google_slide", 
+                    "url": "https://docs.google.com/presentation/d/e/1VDRK_nib2V4adtqoM83uPGOksZl1yCHXrzMjceMaDuA/embed?start=true&loop=true&delayms=5000&rm=minimal" 
+                }
             }
         };
 
         window.onload = function() {
             const allWrappers = {
-                stretch: document.getElementById('stretch-wrapper'), slide: document.getElementById('slide-wrapper'),
-                text: document.getElementById('text-wrapper'), error: document.getElementById('error-wrapper'), 
+                slide: document.getElementById('slide-wrapper'),
+                text: document.getElementById('text-wrapper'), 
+                error: document.getElementById('error-wrapper'), 
             };
 
             const params = new URLSearchParams(window.location.search);
             const deviceId = params.get('device');
 
-            // CRITICAL CHECK: Device ID is required in the URL for this final setup
-            if (!deviceId) {
-                showError("Setup Error", "Device ID is missing from Admin Console URL. Check the Kiosk URL in G-Admin.");
-                return;
-            }
-
             // 1. Apply Rotation
             if (deviceId === '1' || deviceId === '2') { document.body.classList.add('flip-180'); } 
             else { document.body.classList.remove('flip-180'); }
 
-            // 2. Load Content based on CONFIG
+            // 2. Load Content based on unique Device ID
             try {
-                if (CONFIG.mode === 'stretch') { showStretchMode(CONFIG.stretch_content, deviceId); } 
-                else { showIndividualMode(CONFIG.individual_content['device-' + deviceId], deviceId); }
-            } catch (e) {
-                showError("Logic Error", e.message);
-            }
-
-
-            function showStretchMode(content, id) {
-                let element = document.createElement('iframe');
-                element.src = content.url;
-                element.className = 'stretched-element';
-                // This pan is what shows the correct quadrant of the 200% element
-                const offsets = { '1': 'translate(0, 0)', '2': 'translate(-50%, 0)', '3': 'translate(0, -50%)', '4': 'translate(-50%, -50%)' };
-                if (offsets[id]) {
-                    element.style.transform = offsets[id];
-                    showWrapper('stretch');
-                    allWrappers.stretch.innerHTML = ''; 
-                    allWrappers.stretch.appendChild(element);
+                const content = CONFIG.individual_content['device-' + deviceId];
+                if (content) {
+                    showIndividualContent(content);
+                } else {
+                    showError("Setup Error", "Device ID is missing or not configured in the code.");
                 }
+            } catch (e) {
+                showError("Configuration Error", e.message);
             }
 
-            function showIndividualMode(content, id) {
-                if (!content) return showError("Config Error", "No content defined for this device ID in the CONFIG object.");
-                
+
+            function showIndividualContent(content) {
                 if (content.type === 'google_slide') {
-                    const iframe = document.createElement('iframe'); iframe.src = content.url;
-                    allWrappers.slide.innerHTML = ''; allWrappers.slide.appendChild(iframe); showWrapper('slide');
+                    const iframe = document.createElement('iframe'); 
+                    iframe.src = content.url;
+                    allWrappers.slide.innerHTML = ''; 
+                    allWrappers.slide.appendChild(iframe); 
+                    showWrapper('slide');
                 } else if (content.type === 'text') {
                     document.getElementById('text-headline').textContent = content.headline;
                     document.getElementById('text-body').textContent = content.body;
                     showWrapper('text');
+                } else {
+                    showError("Config Error", `Unknown content type: ${content.type}`);
                 }
             }
 
