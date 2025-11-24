@@ -45,7 +45,7 @@
         // *** CONFIGURATION AREA (HARDCODED) ***
         // Update slide links and 'mode' here.
         const CONFIG = {
-            "mode": "stretch", // SET THIS TO 'stretch' OR 'individual'
+            "mode": "individual", // Setting this to 'individual' for the text test
             
             "stretch_content": {
                 "type": "google_slide",
@@ -54,10 +54,11 @@
             },
             
             "individual_content": {
-                "device-1": { "type": "google_slide", "url": "https://docs.google.com/presentation/d/1DyY4bD7MmKKQI8FE-Nc3RiuyiLcfNCyoW3FUTPAF1_s/edit?usp=sharing" },
-                "device-2": { "type": "google_slide", "url": "https://docs.google.com/presentation/d/1VpDueXN_OsqEwVEAz2HYucnNUs1W9M4WcR5xHuQTDQQ/edit?usp=sharing" },
-                "device-3": { "type": "text", "headline": "https://docs.google.com/presentation/d/1NmctG-tMBiJZIqzzTygLbOgx1XxK-4VOto03sNqrt6g/edit?usp=sharing" },
-                "device-4": { "type": "google_slide", "url": "https://docs.google.com/presentation/d/1VDRK_nib2V4adtqoM83uPGOksZl1yCHXrzMjceMaDuA/edit?usp=sharing" }
+                // Testing pure text content to bypass iframe/slide issues
+                "device-1": { "type": "text", "headline": "SCREEN 1", "body": "180 ROTATION CHECK - TOP LEFT" },
+                "device-2": { "type": "text", "headline": "SCREEN 2", "body": "180 ROTATION CHECK - TOP RIGHT" },
+                "device-3": { "type": "text", "headline": "SCREEN 3", "body": "BOTTOM LEFT" },
+                "device-4": { "type": "text", "headline": "SCREEN 4", "body": "BOTTOM RIGHT" }
             }
         };
 
@@ -70,7 +71,7 @@
             const params = new URLSearchParams(window.location.search);
             const deviceId = params.get('device');
 
-            // CRITICAL CHECK: In this final setup, we MUST have an ID from the Admin Console.
+            // CRITICAL CHECK: Device ID is required in the URL for this final setup
             if (!deviceId) {
                 showError("Setup Error", "Device ID is missing from Admin Console URL. Check the Kiosk URL in G-Admin.");
                 return;
