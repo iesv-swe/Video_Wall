@@ -12,8 +12,6 @@
             width: 100%;
             height: 100%;
             background-color: #000;
-            
-            /* THIS IS THE FIX FOR THE WHITE BAR */
             overflow: hidden; 
         }
 
@@ -24,7 +22,7 @@
             position: absolute;
             top: 0;
             left: 0;
-            overflow: hidden; /* Double insurance */
+            overflow: hidden; 
         }
 
         /* --- THE IMAGE (Handles Sizing) --- */
@@ -42,7 +40,7 @@
 
     <div style="display:none;">
         <img id="preload-individual" src="">
-        <img src="stretch.jpg">
+        <img src="stretched.jpg"> 
     </div>
 
     <script>
@@ -57,7 +55,7 @@
         const imgElement = document.getElementById('wall-display');
         const individualImage = 'screen' + screenId + '.jpg';
         
-        // Preload
+        // Preload Individual
         document.getElementById('preload-individual').src = individualImage;
 
         // --- ROTATION ---
@@ -86,15 +84,16 @@
             
             // --- PHASE 2: STRETCH MODE ---
             else {
-                if (!imgElement.src.includes('stretch.jpg')) {
-                    imgElement.src = 'stretch.jpg';
+                // UPDATED: Now looks for 'stretched.jpg'
+                if (!imgElement.src.includes('stretched.jpg')) {
+                    imgElement.src = 'stretched.jpg';
                     
                     // FORCE 200% SIZE
                     imgElement.style.width = "200vw";
                     imgElement.style.height = "200vh";
                     imgElement.style.objectFit = "fill"; 
                     
-                    // COORDINATES (Moving the giant image)
+                    // COORDINATES
                     switch (screenId) {
                         case '1': // Top Left
                             imgElement.style.top = "0";
@@ -102,10 +101,10 @@
                             break;
                         case '2': // Top Right
                             imgElement.style.top = "0";
-                            imgElement.style.left = "-100vw"; // Move left by 1 screen
+                            imgElement.style.left = "-100vw"; 
                             break;
                         case '3': // Bottom Left
-                            imgElement.style.top = "-100vh"; // Move up by 1 screen
+                            imgElement.style.top = "-100vh"; 
                             imgElement.style.left = "0";
                             break;
                         case '4': // Bottom Right
