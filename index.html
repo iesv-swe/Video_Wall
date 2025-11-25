@@ -35,13 +35,19 @@
         const screenId = urlParams.get('id');
         const imgElement = document.getElementById('wall-display');
 
+        // --- ROTATION LOGIC (NEW) ---
+        // If this is Screen 1 or Screen 2, rotate the display 180 degrees
+        if (screenId === '1' || screenId === '2') {
+            imgElement.style.transform = "rotate(180deg)";
+        }
+
         function updateDisplay() {
             const now = new Date();
             const currentSecond = now.getSeconds();
 
             // --- PHASE 1: INDIVIDUAL MODE ---
             if (currentSecond < STRETCH_START_TIME) {
-                // NEW: Looks for screen1.jpg, screen2.jpg (lowercase, no spaces)
+                // Looks for screen1.jpg, screen2.jpg (lowercase, no spaces)
                 imgElement.src = 'screen' + screenId + '.jpg';
                 
                 imgElement.style.objectFit = "contain";
@@ -50,7 +56,7 @@
             
             // --- PHASE 2: STRETCH MODE ---
             else {
-                // NEW: Looks for stretch.jpg (lowercase)
+                // Looks for stretch.jpg (lowercase)
                 imgElement.src = 'stretch.jpg';
                 
                 imgElement.style.objectFit = "cover"; 
