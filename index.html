@@ -41,9 +41,8 @@
 
             // --- PHASE 1: INDIVIDUAL MODE ---
             if (currentSecond < STRETCH_START_TIME) {
-                // UPDATE: Added 'Screen ' prefix and handled the space
-                // If screenId is 1, this asks for "Screen 1.jpg"
-                imgElement.src = 'Screen ' + screenId + '.jpg';
+                // NEW: Looks for screen1.jpg, screen2.jpg (lowercase, no spaces)
+                imgElement.src = 'screen' + screenId + '.jpg';
                 
                 imgElement.style.objectFit = "contain";
                 imgElement.style.objectPosition = "center";
@@ -51,8 +50,8 @@
             
             // --- PHASE 2: STRETCH MODE ---
             else {
-                // UPDATE: Changed to Capital S 'Stretched.jpg'
-                imgElement.src = 'Stretched.jpg';
+                // NEW: Looks for stretch.jpg (lowercase)
+                imgElement.src = 'stretch.jpg';
                 
                 imgElement.style.objectFit = "cover"; 
                 
