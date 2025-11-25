@@ -14,31 +14,48 @@
             overflow: hidden;
         }
 
-        #wall-display {
+        /* The Frame that holds the image */
+        #stage {
             width: 100vw;
             height: 100vh;
-            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* The Image itself */
+        #wall-display {
+            position: absolute;
+            transition: opacity 0.5s ease;
         }
     </style>
 </head>
 <body>
 
-    <img id="wall-display" src="" alt="Display">
+    <div id="stage">
+        <img id="wall-display" src="" alt="Display">
+    </div>
+
+    <div style="display:none;">
+        <img id="preload-individual" src="">
+        <img src="stretch.jpg">
+    </div>
 
     <script>
         // --- CONFIGURATION ---
-        const TOTAL_CYCLE_TIME = 60; 
         const STRETCH_START_TIME = 30; 
 
         // --- SETUP ---
         const urlParams = new URLSearchParams(window.location.search);
-        const screenId = urlParams.get('id');
+        const screenId = urlParams.get('id') || '1';
         const imgElement = document.getElementById('wall-display');
+        const stage = document.getElementById('stage');
 
-        // --- ROTATION LOGIC (NEW) ---
-        // If this is Screen 1 or Screen 2, rotate the display 180 degrees
+        const individualImage = 'screen' + screenId + '.jpg';
+        document.getElementById('preload-individual').src = individualImage;
+
+        // --- ROTATION FIX (Applied to the Stage, not the image) ---
         if (screenId === '1' || screenId === '2') {
-            imgElement.style.transform = "rotate(180deg)";
+            stage.style.transform = "rotate(180deg)";
         }
 
         function updateDisplay() {
@@ -47,40 +64,53 @@
 
             // --- PHASE 1: INDIVIDUAL MODE ---
             if (currentSecond < STRETCH_START_TIME) {
-                // Looks for screen1.jpg, screen2.jpg (lowercase, no spaces)
-                imgElement.src = 'screen' + screenId + '.jpg';
-                
-                imgElement.style.objectFit = "contain";
-                imgElement.style.objectPosition = "center";
+                if (!imgElement.src.includes(individualImage)) {
+                    imgElement.src = individualImage;
+                    
+                    // Reset to normal size for individual slide
+                    imgElement.style.width = "100%";
+                    imgElement.style.height = "100%";
+                    imgElement.style.top = "0";
+                    imgElement.style.left = "0";
+                    imgElement.style.objectFit = "contain";
+                }
             } 
             
             // --- PHASE 2: STRETCH MODE ---
             else {
-                // Looks for stretched.jpg (lowercase)
-                imgElement.src = 'stretched.jpg';
-                
-                imgElement.style.objectFit = "cover"; 
-                
-                switch (screenId) {
-                    case '1': // Top Left
-                        imgElement.style.objectPosition = "0% 0%";
-                        break;
-                    case '2': // Top Right
-                        imgElement.style.objectPosition = "100% 0%";
-                        break;
-                    case '3': // Bottom Left
-                        imgElement.style.objectPosition = "0% 100%";
-                        break;
-                    case '4': // Bottom Right
-                        imgElement.style.objectPosition = "100% 100%";
-                        break;
-                    default:
-                        imgElement.style.objectPosition = "center";
+                if (!imgElement.src.includes('stretch.jpg')) {
+                    imgElement.src = 'stretch.jpg';
+                    
+                    // FORCE 200% SIZE
+                    imgElement.style.width = "200vw";
+                    imgElement.style.height = "200vh";
+                    imgElement.style.objectFit = "fill"; // Force stretch to box
+                    
+                    // MANUAL COORDINATES
+                    // We move the image around so the correct corner shows through the window
+                    switch (screenId) {
+                        case '1': // Top Left
+                            imgElement.style.top = "0";
+                            imgElement.style.left = "0";
+                            break;
+                        case '2': // Top Right
+                            imgElement.style.top = "0";
+                            imgElement.style.left = "-100vw"; // Shift left by 1 screen width
+                            break;
+                        case '3': // Bottom Left
+                            imgElement.style.top = "-100vh"; // Shift up by 1 screen height
+                            imgElement.style.left = "0";
+                            break;
+                        case '4': // Bottom Right
+                            imgElement.style.top = "-100vh";
+                            imgElement.style.left = "-100vw";
+                            break;
+                    }
                 }
             }
         }
 
-        setInterval(updateDisplay, 1000);
+        setInterval(updateDisplay, 200);
         updateDisplay();
     </script>
 </body>
