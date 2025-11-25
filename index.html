@@ -5,36 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>School Video Wall</title>
     <style>
-        /* --- RESET --- */
+        /* --- RESET & HIDE SCROLLBARS --- */
         body, html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
             background-color: #000;
-            overflow: hidden; /* CRITICAL: Hides any scrollbars */
+            
+            /* THIS IS THE FIX FOR THE WHITE BAR */
+            overflow: hidden; 
         }
 
-        /* --- HIDE SCROLLBARS FORCED --- */
-        ::-webkit-scrollbar {
-            display: none;
-        }
-
-        /* --- THE WALLPAPER DIV --- */
-        #wall-display {
+        /* --- THE STAGE (Handles Rotation) --- */
+        #stage {
             width: 100vw;
             height: 100vh;
-            background-color: #000;
-            background-repeat: no-repeat;
-            
-            /* Smooth transition between slides */
+            position: absolute;
+            top: 0;
+            left: 0;
+            overflow: hidden; /* Double insurance */
+        }
+
+        /* --- THE IMAGE (Handles Sizing) --- */
+        #wall-display {
+            position: absolute;
             transition: opacity 0.5s ease;
         }
     </style>
 </head>
 <body>
 
-    <div id="wall-display"></div>
+    <div id="stage">
+        <img id="wall-display" src="" alt="Display">
+    </div>
 
     <div style="display:none;">
         <img id="preload-individual" src="">
@@ -49,57 +53,70 @@
         const urlParams = new URLSearchParams(window.location.search);
         const screenId = urlParams.get('id') || '1';
         
-        const displayDiv = document.getElementById('wall-display');
+        const stage = document.getElementById('stage');
+        const imgElement = document.getElementById('wall-display');
         const individualImage = 'screen' + screenId + '.jpg';
         
         // Preload
         document.getElementById('preload-individual').src = individualImage;
 
-        // --- ROTATION SETTING ---
-        // We rotate the whole DIV for screens 1 & 2
+        // --- ROTATION ---
+        // Rotates the whole stage for Screen 1 & 2
         if (screenId === '1' || screenId === '2') {
-            displayDiv.style.transform = "rotate(180deg)";
+            stage.style.transform = "rotate(180deg)";
         }
 
         function updateDisplay() {
             const now = new Date();
             const currentSecond = now.getSeconds();
 
-            // --- PHASE 1: INDIVIDUAL MODE (0-29s) ---
+            // --- PHASE 1: INDIVIDUAL MODE ---
             if (currentSecond < STRETCH_START_TIME) {
-                // We set the background to the individual slide
-                // 'contain' ensures we see the whole slide without cutting
-                displayDiv.style.backgroundImage = "url('" + individualImage + "')";
-                displayDiv.style.backgroundSize = "contain"; 
-                displayDiv.style.backgroundPosition = "center";
+                if (!imgElement.src.includes(individualImage)) {
+                    imgElement.src = individualImage;
+                    
+                    // Reset to normal fit
+                    imgElement.style.width = "100%";
+                    imgElement.style.height = "100%";
+                    imgElement.style.top = "0";
+                    imgElement.style.left = "0";
+                    imgElement.style.objectFit = "contain";
+                }
             } 
             
-            // --- PHASE 2: STRETCH MODE (30-59s) ---
+            // --- PHASE 2: STRETCH MODE ---
             else {
-                displayDiv.style.backgroundImage = "url('stretch.jpg')";
-                
-                // FORCE 200% ZOOM (Since we have 2x2 screens)
-                displayDiv.style.backgroundSize = "200% 200%"; 
-                
-                // POSITIONING (Where do we start painting?)
-                switch (screenId) {
-                    case '1': // Top Left
-                        displayDiv.style.backgroundPosition = "0% 0%";
-                        break;
-                    case '2': // Top Right
-                        displayDiv.style.backgroundPosition = "100% 0%";
-                        break;
-                    case '3': // Bottom Left
-                        displayDiv.style.backgroundPosition = "0% 100%";
-                        break;
-                    case '4': // Bottom Right
-                        displayDiv.style.backgroundPosition = "100% 100%";
-                        break;
+                if (!imgElement.src.includes('stretch.jpg')) {
+                    imgElement.src = 'stretch.jpg';
+                    
+                    // FORCE 200% SIZE
+                    imgElement.style.width = "200vw";
+                    imgElement.style.height = "200vh";
+                    imgElement.style.objectFit = "fill"; 
+                    
+                    // COORDINATES (Moving the giant image)
+                    switch (screenId) {
+                        case '1': // Top Left
+                            imgElement.style.top = "0";
+                            imgElement.style.left = "0";
+                            break;
+                        case '2': // Top Right
+                            imgElement.style.top = "0";
+                            imgElement.style.left = "-100vw"; // Move left by 1 screen
+                            break;
+                        case '3': // Bottom Left
+                            imgElement.style.top = "-100vh"; // Move up by 1 screen
+                            imgElement.style.left = "0";
+                            break;
+                        case '4': // Bottom Right
+                            imgElement.style.top = "-100vh";
+                            imgElement.style.left = "-100vw";
+                            break;
+                    }
                 }
             }
         }
 
-        // Run fast to catch the time change instantly
         setInterval(updateDisplay, 200);
         updateDisplay();
     </script>
