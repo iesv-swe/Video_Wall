@@ -1,127 +1,82 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>School Video Wall - Individual Screens</title>
-    <!-- CSS STYLES ARE EMBEDDED HERE -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Video Wall</title>
     <style>
-        /* Global Styles: Ensures full screen, black background, and no scrolling */
-        body, html { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background-color: black; }
-        .content-container { display: none; width: 100%; height: 100%; box-sizing: border-box; }
-        
-        /* Centering for Text/Error */
-        #text-wrapper, #error-wrapper {
-            color: white; font-family: sans-serif; padding: 40px; display: flex; 
-            flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            overflow: hidden;
         }
-        #error-wrapper { color: #ff6b6b; }
-        
-        /* Content Wrappers */
-        #slide-wrapper iframe { width: 100%; height: 100%; border: 0; }
-        
-        /* Flip Correction for Screens 1 & 2 */
-        .flip-180 { transform: rotate(180deg); }
+
+        #wall-display {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
     </style>
 </head>
 <body>
 
-    <!-- --- HTML PLACEHOLDERS --- -->
-    <div id="slide-wrapper" class="content-container"></div>
-    <div id="text-wrapper" class="content-container">
-        <h1 id="text-headline"></h1>
-        <p id="text-body"></p>
-    </div>
-    <div id="error-wrapper" class="content-container">
-        <h1 id="error-headline">Error</h1>
-        <p id="error-body"></p>
-    </div>
+    <img id="wall-display" src="" alt="Display">
 
-    <!-- --- JAVASCRIPT LOGIC (Hardcoded) --- -->
     <script>
-        // *** CONFIGURATION AREA (HARDCODED) ***
-        // These are the specific, unique URLs you provided, converted to the necessary 'embed' format.
-        const CONFIG = {
-            // SET MODE TO INDIVIDUAL PERMANENTLY
-            "mode": "individual", 
+        // --- CONFIGURATION ---
+        const TOTAL_CYCLE_TIME = 60; 
+        const STRETCH_START_TIME = 30; 
+
+        // --- SETUP ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const screenId = urlParams.get('id');
+        const imgElement = document.getElementById('wall-display');
+
+        function updateDisplay() {
+            const now = new Date();
+            const currentSecond = now.getSeconds();
+
+            // --- PHASE 1: INDIVIDUAL MODE ---
+            if (currentSecond < STRETCH_START_TIME) {
+                // UPDATE: Added 'Screen ' prefix and handled the space
+                // If screenId is 1, this asks for "Screen 1.jpg"
+                imgElement.src = 'Screen ' + screenId + '.jpg';
+                
+                imgElement.style.objectFit = "contain";
+                imgElement.style.objectPosition = "center";
+            } 
             
-            "individual_content": {
-                "device-1": { 
-                    "type": "google_slide", 
-                    "url": "https://docs.google.com/presentation/d/e/2PACX-1vQXrj85LfePttbPNZDiEy7IYk_ylxqgGxkDLfzgdRTIyY28DzYYJL6Er9wigdwy2IGOsFmVR8WzzNwa/pub?start=true&loop=true&delayms=5000" 
-                },
-                "device-2": { 
-                    "type": "google_slide", 
-                    "url": "https://docs.google.com/presentation/d/e/1VpDueXN_OsqEwVEAz2HYucnNUs1W9M4WcR5xHuQTDQQ/embed?start=true&loop=true&delayms=5000&rm=minimal" 
-                },
-                "device-3": { 
-                    "type": "google_slide", 
-                    "url": "https://docs.google.com/presentation/d/e/1NmctG-tMBiJZIqzzTygLbOgx1XxK-4VOto03sNqrt6g/embed?start=true&loop=true&delayms=5000&rm=minimal" 
-                },
-                "device-4": { 
-                    "type": "google_slide", 
-                    "url": "https://docs.google.com/presentation/d/e/1VDRK_nib2V4adtqoM83uPGOksZl1yCHXrzMjceMaDuA/embed?start=true&loop=true&delayms=5000&rm=minimal" 
+            // --- PHASE 2: STRETCH MODE ---
+            else {
+                // UPDATE: Changed to Capital S 'Stretched.jpg'
+                imgElement.src = 'Stretched.jpg';
+                
+                imgElement.style.objectFit = "cover"; 
+                
+                switch (screenId) {
+                    case '1': // Top Left
+                        imgElement.style.objectPosition = "0% 0%";
+                        break;
+                    case '2': // Top Right
+                        imgElement.style.objectPosition = "100% 0%";
+                        break;
+                    case '3': // Bottom Left
+                        imgElement.style.objectPosition = "0% 100%";
+                        break;
+                    case '4': // Bottom Right
+                        imgElement.style.objectPosition = "100% 100%";
+                        break;
+                    default:
+                        imgElement.style.objectPosition = "center";
                 }
             }
-        };
+        }
 
-        window.onload = function() {
-            const allWrappers = {
-                slide: document.getElementById('slide-wrapper'),
-                text: document.getElementById('text-wrapper'), 
-                error: document.getElementById('error-wrapper'), 
-            };
-
-            const params = new URLSearchParams(window.location.search);
-            const deviceId = params.get('device');
-
-            // 1. Apply Rotation
-            if (deviceId === '1' || deviceId === '2') { document.body.classList.add('flip-180'); } 
-            else { document.body.classList.remove('flip-180'); }
-
-            // 2. Load Content based on unique Device ID
-            try {
-                const content = CONFIG.individual_content['device-' + deviceId];
-                if (content) {
-                    showIndividualContent(content);
-                } else {
-                    showError("Setup Error", "Device ID is missing or not configured in the code.");
-                }
-            } catch (e) {
-                showError("Configuration Error", e.message);
-            }
-
-
-            function showIndividualContent(content) {
-                if (content.type === 'google_slide') {
-                    const iframe = document.createElement('iframe'); 
-                    iframe.src = content.url;
-                    allWrappers.slide.innerHTML = ''; 
-                    allWrappers.slide.appendChild(iframe); 
-                    showWrapper('slide');
-                } else if (content.type === 'text') {
-                    document.getElementById('text-headline').textContent = content.headline;
-                    document.getElementById('text-body').textContent = content.body;
-                    showWrapper('text');
-                } else {
-                    showError("Config Error", `Unknown content type: ${content.type}`);
-                }
-            }
-
-            function showError(head, body) {
-                document.getElementById('error-headline').textContent = head;
-                document.getElementById('error-body').textContent = body;
-                showWrapper('error');
-            }
-
-            function showWrapper(activeKey) {
-                for (let key in allWrappers) {
-                    if(allWrappers[key]) {
-                        // Use 'flex' for text/error to center content, 'block' for iframes
-                        const displayType = (key === 'text' || key === 'error') ? 'flex' : 'block';
-                        allWrappers[key].style.display = (key === activeKey) ? displayType : 'none';
-                    }
-                }
-            }
-        };
+        setInterval(updateDisplay, 1000);
+        updateDisplay();
     </script>
 </body>
 </html>
