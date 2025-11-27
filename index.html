@@ -67,8 +67,10 @@
         // --- CONFIGURATION ---
         const STRETCH_START_TIME = 30; // Seconds into the minute to switch
         
-        // VERSION CONTROL: Force update
-        const VERSION = '3'; 
+        // VERSION CONTROL: 
+        // Once this code is live, you won't need to change this manually anymore!
+        // The Auto-Refresh logic below will handle it.
+        const VERSION = '4'; 
 
         // --- ALIGNMENT SETTINGS (The "Magic" Numbers) ---
         // Calculated from your grid photos
@@ -189,6 +191,41 @@
                 requestWakeLock();
             }
         });
+
+        // --- AUTO-REFRESH SENTRY (NEW) ---
+        // Checks the server every 60 seconds to see if index.html has changed.
+        let lastModified = null;
+
+        async function checkForUpdates() {
+            try {
+                // Ask the server for the header information of this file
+                // We use the current URL but add a random number to prevent caching the check itself
+                const response = await fetch(window.location.href.split('?')[0] + '?check=' + Date.now(), { 
+                    method: 'HEAD',
+                    cache: 'no-cache'
+                });
+                
+                const newModified = response.headers.get('Last-Modified');
+                
+                if (lastModified && newModified && lastModified !== newModified) {
+                    console.log("New update detected! Reloading page...");
+                    location.reload(true); // Force reload from server
+                }
+                
+                if (newModified) {
+                    lastModified = newModified;
+                }
+            } catch (e) {
+                console.log("Auto-refresh check skipped (Network/Firewall issue?):", e);
+            }
+        }
+
+        // Check for updates every 60 seconds
+        setInterval(checkForUpdates, 60000);
+
+        // Safety Refresh: Reload every 2 hours anyway just to clear memory
+        setInterval(() => location.reload(true), 7200000);
+
 
         // Run loop every 200ms
         setInterval(updateDisplay, 200);
