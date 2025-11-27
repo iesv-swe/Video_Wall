@@ -66,7 +66,7 @@
     <script>
         // --- CONFIGURATION ---
         const STRETCH_START_TIME = 30; // Seconds into the minute to switch
-        const VERSION = '5'; // Bumped version to force update
+        const VERSION = '6'; // Bumped version to force update
 
         // --- ALIGNMENT SETTINGS (Calculated from your grid photo) ---
         const BEZEL_H = 20; // 20px horizontal compensation
@@ -155,19 +155,45 @@
             }
         }
 
-        // --- WAKE LOCK (Keep Screen On) ---
+        // --- WAKE LOCK & SHUTDOWN HANDLER (Fixes "Restore Session" Bar) ---
         let wakeLock = null;
+
+        // Function to request the wake lock
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock active');
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error('Wake Lock failed:', err);
+            }
         }
+
+        // Request lock immediately
         requestWakeLock();
+
+        // Re-request lock if window regains focus (failsafe)
         document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible') requestWakeLock();
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
         });
+
+        // CLEAN RELEASE: This is the magic key. It tells Chrome "we are closing on purpose",
+        // preventing the "Chromium didn't shut down correctly" bar on next boot.
+        window.addEventListener('beforeunload', async () => {
+            if (wakeLock) {
+                await wakeLock.release();
+                wakeLock = null;
+            }
+        });
+
+        // EXPERIMENTAL: Attempt to brute-force hide the infobar if it appears
+        setTimeout(() => {
+            const infobar = document.querySelector('div[id*="infobar"]') || document.querySelector('#restore-pages');
+            if (infobar) infobar.style.display = 'none';
+        }, 1000);
 
         setInterval(updateDisplay, 200);
         updateDisplay();
