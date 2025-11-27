@@ -12,10 +12,11 @@
             width: 100%;
             height: 100%;
             background-color: #000;
-            overflow: hidden; 
+            overflow: hidden; /* CRITICAL: Prevents white scrollbars */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* --- THE STAGE (Handles Rotation) --- */
+        /* --- THE STAGE --- */
         #stage {
             width: 100vw;
             height: 100vh;
@@ -25,55 +26,91 @@
             overflow: hidden; 
         }
 
-        /* --- THE IMAGE (Handles Sizing) --- */
+        /* --- THE IMAGE DISPLAY --- */
         #wall-display {
             position: absolute;
+            display: block;
             transition: opacity 0.5s ease;
+        }
+
+        /* --- THE CLOCK OVERLAY --- */
+        #clock-overlay {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            font-size: 4rem; /* Big, visible text */
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 2px 2px 8px #000000; /* Drop shadow for readability */
+            z-index: 9999; /* Always on top */
+            pointer-events: none; /* Let clicks pass through */
         }
     </style>
 </head>
 <body>
 
     <div id="stage">
-        <img id="wall-display" src="" alt="Display">
+        <!-- Main Image Element with Error Hiding -->
+        <img id="wall-display" src="" alt="" onerror="this.style.display='none'">
+        
+        <!-- The Digital Clock -->
+        <div id="clock-overlay">--:--</div>
     </div>
 
+    <!-- PRELOADER (Hidden) -->
     <div style="display:none;">
         <img id="preload-individual" src="">
-        <img src="stretched.jpg"> 
+        <img id="preload-stretch" src=""> 
     </div>
 
     <script>
         // --- CONFIGURATION ---
-        const STRETCH_START_TIME = 30; 
+        const STRETCH_START_TIME = 30; // Seconds into the minute to switch
+        
+        // VERSION CONTROL: Change this to '2', '3', etc. to force devices to re-download images
+        const VERSION = '1'; 
+
+        // BEZEL COMPENSATION (In Pixels)
+        // Adjust this if the image looks "cut" by the plastic frames. 
+        // Try 20, 40, or 60 if needed.
+        const BEZEL_OFFSET = 0; 
 
         // --- SETUP ---
         const urlParams = new URLSearchParams(window.location.search);
-        const screenId = urlParams.get('id') || '1';
+        // Default to '1' if no ID provided
+        const screenId = urlParams.get('device') || urlParams.get('id') || '1';
         
-        const stage = document.getElementById('stage');
         const imgElement = document.getElementById('wall-display');
-        const individualImage = 'screen' + screenId + '.jpg';
+        const clockElement = document.getElementById('clock-overlay');
         
-        // Preload Individual
+        // Construct URLs with Versioning
+        const individualImage = 'screen' + screenId + '.jpg?v=' + VERSION;
+        const stretchImage = 'stretched.jpg?v=' + VERSION; // Note: 'stretched.jpg' per your file
+        
+        // Preload Images immediately
         document.getElementById('preload-individual').src = individualImage;
+        document.getElementById('preload-stretch').src = stretchImage;
 
-        // --- ROTATION ---
-        // Rotates the whole stage for Screen 1 & 2
-        if (screenId === '1' || screenId === '2') {
-            stage.style.transform = "rotate(180deg)";
-        }
 
+        // --- MAIN LOOP ---
         function updateDisplay() {
             const now = new Date();
             const currentSecond = now.getSeconds();
 
-            // --- PHASE 1: INDIVIDUAL MODE ---
+            // 1. UPDATE CLOCK
+            // Formats time as 12:34 (HH:MM)
+            const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            clockElement.innerText = timeString;
+
+            // 2. UPDATE IMAGES
+            // --- PHASE 1: INDIVIDUAL MODE (0-29s) ---
             if (currentSecond < STRETCH_START_TIME) {
+                // Only update if source is different (prevents flickering)
                 if (!imgElement.src.includes(individualImage)) {
+                    imgElement.style.display = 'block';
                     imgElement.src = individualImage;
                     
-                    // Reset to normal fit
+                    // Reset CSS for Single Screen
                     imgElement.style.width = "100%";
                     imgElement.style.height = "100%";
                     imgElement.style.top = "0";
@@ -82,26 +119,27 @@
                 }
             } 
             
-            // --- PHASE 2: STRETCH MODE ---
+            // --- PHASE 2: STRETCH MODE (30-59s) ---
             else {
-                // UPDATED: Now looks for 'stretched.jpg'
-                if (!imgElement.src.includes('stretched.jpg')) {
-                    imgElement.src = 'stretched.jpg';
+                if (!imgElement.src.includes(stretchImage)) {
+                    imgElement.style.display = 'block';
+                    imgElement.src = stretchImage;
                     
-                    // FORCE 200% SIZE
-                    imgElement.style.width = "200vw";
-                    imgElement.style.height = "200vh";
+                    // FORCE 200% SIZE (Plus Bezel Compensation)
+                    imgElement.style.width = "calc(200vw + " + (BEZEL_OFFSET * 2) + "px)";
+                    imgElement.style.height = "200vh"; 
                     imgElement.style.objectFit = "fill"; 
                     
-                    // COORDINATES
+                    // COORDINATES (Moving the giant image)
                     switch (screenId) {
                         case '1': // Top Left
                             imgElement.style.top = "0";
-                            imgElement.style.left = "0";
+                            imgElement.style.left = "0"; 
                             break;
                         case '2': // Top Right
                             imgElement.style.top = "0";
-                            imgElement.style.left = "-100vw"; 
+                            // Pull image left by 1 screen width + bezel
+                            imgElement.style.left = "calc(-100vw - " + BEZEL_OFFSET + "px)";
                             break;
                         case '3': // Bottom Left
                             imgElement.style.top = "-100vh"; 
@@ -109,13 +147,42 @@
                             break;
                         case '4': // Bottom Right
                             imgElement.style.top = "-100vh";
-                            imgElement.style.left = "-100vw";
+                            imgElement.style.left = "calc(-100vw - " + BEZEL_OFFSET + "px)";
                             break;
                     }
                 }
             }
         }
 
+        // --- WAKE LOCK API (Prevents Screen Sleep) ---
+        let wakeLock = null;
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock is active!');
+                    
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Wake Lock was released');
+                    });
+                }
+            } catch (err) {
+                console.error(`${err.name}, ${err.message}`);
+            }
+        }
+
+        // Request lock on load
+        requestWakeLock();
+
+        // Re-request if window regains focus (failsafe)
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
+
+        // Run loop every 200ms
         setInterval(updateDisplay, 200);
         updateDisplay();
     </script>
