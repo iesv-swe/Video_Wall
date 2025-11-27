@@ -11,7 +11,7 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #222; /* Dark Grey background to see if element loads */
+            background-color: #000;
             overflow: hidden; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
@@ -31,7 +31,6 @@
             position: absolute;
             display: block;
             transition: opacity 0.5s ease;
-            background-color: #333; /* Placeholder color */
         }
 
         /* --- THE CLOCK OVERLAY --- */
@@ -46,32 +45,16 @@
             z-index: 9999; 
             pointer-events: none; 
         }
-
-        /* --- DEBUG STATUS (Top Left) --- */
-        #debug-status {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            font-size: 1rem;
-            color: lime;
-            font-family: monospace;
-            z-index: 10000;
-            background: rgba(0,0,0,0.5);
-            padding: 5px;
-        }
     </style>
 </head>
 <body>
 
     <div id="stage">
-        <!-- Removed onerror hiding so we can see broken icons -->
-        <img id="wall-display" src="" alt="Loading...">
+        <!-- Main Image Element -->
+        <img id="wall-display" src="" alt="" onerror="this.style.display='none'">
         
         <!-- The Digital Clock -->
         <div id="clock-overlay">--:--</div>
-        
-        <!-- Debug Status -->
-        <div id="debug-status">Initializing...</div>
     </div>
 
     <!-- PRELOADER -->
@@ -82,34 +65,31 @@
 
     <script>
         // --- CONFIGURATION ---
-        const STRETCH_START_TIME = 30; 
-        const VERSION = '4'; // Bumped version
-        
-        // SESSION ID: Random number generated on every boot. 
-        // This forces a fresh download of images every time the device turns on.
-        const SESSION_ID = Math.floor(Math.random() * 10000);
+        const STRETCH_START_TIME = 30; // Seconds into the minute to switch
+        const VERSION = '5'; // Bumped version to force update
 
-        // --- ALIGNMENT SETTINGS ---
-        const BEZEL_H = 20; 
-        const BEZEL_V = 20; 
+        // --- ALIGNMENT SETTINGS (Calculated from your grid photo) ---
+        const BEZEL_H = 20; // 20px horizontal compensation
+        const BEZEL_V = 20; // 20px vertical compensation
 
         // --- SETUP ---
         const urlParams = new URLSearchParams(window.location.search);
+        // Works with both ?device=1 OR ?id=1
         const screenId = urlParams.get('device') || urlParams.get('id') || '1';
         
         const imgElement = document.getElementById('wall-display');
         const clockElement = document.getElementById('clock-overlay');
-        const debugElement = document.getElementById('debug-status');
 
         // CLOCK VISIBILITY: Only show on Screen 4
         if (screenId !== '4') {
             clockElement.style.display = 'none';
         }
         
-        // CONSTRUCT URLs with Session Buster
-        const individualImage = 'screen' + screenId + '.jpg?v=' + VERSION + '&s=' + SESSION_ID;
-        const stretchImage = 'stretched.jpg?v=' + VERSION + '&s=' + SESSION_ID; 
+        // Construct URLs
+        const individualImage = 'screen' + screenId + '.jpg?v=' + VERSION;
+        const stretchImage = 'stretched.jpg?v=' + VERSION; 
         
+        // Preload
         document.getElementById('preload-individual').src = individualImage;
         document.getElementById('preload-stretch').src = stretchImage;
 
@@ -125,10 +105,10 @@
             }
 
             // 2. UPDATE IMAGES
+            // --- INDIVIDUAL MODE (0-29s) ---
             if (currentSecond < STRETCH_START_TIME) {
-                // --- INDIVIDUAL MODE ---
                 if (!imgElement.src.includes(individualImage)) {
-                    debugElement.innerText = `[INDIVIDUAL] ${individualImage}`; // Debug Info
+                    imgElement.style.display = 'block';
                     imgElement.src = individualImage;
                     
                     imgElement.style.width = "100%";
@@ -137,30 +117,36 @@
                     imgElement.style.left = "0";
                     imgElement.style.objectFit = "contain";
                 }
-            } else {
-                // --- STRETCH MODE ---
+            } 
+            
+            // --- STRETCH MODE (30-59s) ---
+            else {
                 if (!imgElement.src.includes(stretchImage)) {
-                    debugElement.innerText = `[STRETCH] ${stretchImage}`; // Debug Info
+                    imgElement.style.display = 'block';
                     imgElement.src = stretchImage;
                     
+                    // CALC: 200% Size + Bezel Compensation
                     imgElement.style.width = "calc(200vw + " + (BEZEL_H * 2) + "px)";
                     imgElement.style.height = "calc(200vh + " + (BEZEL_V * 2) + "px)";
                     imgElement.style.objectFit = "fill"; 
                     
+                    // COORDINATES
                     switch (screenId) {
-                        case '1': 
+                        case '1': // Top Left
                             imgElement.style.top = "0";
                             imgElement.style.left = "0"; 
                             break;
-                        case '2': 
+                        case '2': // Top Right
                             imgElement.style.top = "0";
+                            // Shift Left: -100vw - Horizontal Bezel
                             imgElement.style.left = "calc(-100vw - " + BEZEL_H + "px)";
                             break;
-                        case '3': 
+                        case '3': // Bottom Left
+                            // Shift Up: -100vh - Vertical Bezel
                             imgElement.style.top = "calc(-100vh - " + BEZEL_V + "px)";
                             imgElement.style.left = "0";
                             break;
-                        case '4': 
+                        case '4': // Bottom Right
                             imgElement.style.top = "calc(-100vh - " + BEZEL_V + "px)";
                             imgElement.style.left = "calc(-100vw - " + BEZEL_H + "px)";
                             break;
@@ -169,7 +155,7 @@
             }
         }
 
-        // --- WAKE LOCK ---
+        // --- WAKE LOCK (Keep Screen On) ---
         let wakeLock = null;
         async function requestWakeLock() {
             try {
@@ -182,15 +168,6 @@
         document.addEventListener('visibilitychange', async () => {
             if (wakeLock !== null && document.visibilityState === 'visible') requestWakeLock();
         });
-        window.addEventListener('beforeunload', async () => {
-            if (wakeLock) { await wakeLock.release(); wakeLock = null; }
-        });
-
-        // Hide Rescue Bar Attempt
-        setTimeout(() => {
-            const infobar = document.querySelector('div[id*="infobar"]') || document.querySelector('#restore-pages');
-            if (infobar) infobar.style.display = 'none';
-        }, 1000);
 
         setInterval(updateDisplay, 200);
         updateDisplay();
