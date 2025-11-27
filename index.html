@@ -82,6 +82,11 @@
         
         const imgElement = document.getElementById('wall-display');
         const clockElement = document.getElementById('clock-overlay');
+
+        // CLOCK VISIBILITY: Only show on Screen 4
+        if (screenId !== '4') {
+            clockElement.style.display = 'none';
+        }
         
         // Construct URLs with Versioning
         const individualImage = 'screen' + screenId + '.jpg?v=' + VERSION;
@@ -97,10 +102,12 @@
             const now = new Date();
             const currentSecond = now.getSeconds();
 
-            // 1. UPDATE CLOCK
-            // Formats time as 12:34 (HH:MM)
-            const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            clockElement.innerText = timeString;
+            // 1. UPDATE CLOCK (Only if visible)
+            if (screenId === '4') {
+                // Formats time as 12:34 (HH:MM)
+                const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                clockElement.innerText = timeString;
+            }
 
             // 2. UPDATE IMAGES
             // --- PHASE 1: INDIVIDUAL MODE (0-29s) ---
