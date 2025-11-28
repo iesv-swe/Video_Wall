@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>School Video Wall</title>
     
-    <!-- LINK TO MANIFEST (The "Nuclear Option" for UI hiding) -->
-    <link rel="manifest" href="manifest.json">
+    <!-- LINK TO MANIFEST (Cache Buster Added: ?v=9) -->
+    <!-- This forces Chrome to re-read the manifest file -->
+    <link rel="manifest" href="manifest.json?v=9">
 
     <style>
         /* --- RESET & UI HIDING --- */
@@ -67,7 +68,7 @@
     <script>
         // --- CONFIGURATION ---
         const STRETCH_START_TIME = 30; 
-        const VERSION = '8'; // Bumped to 8
+        const VERSION = '9'; // Bumped to 9
 
         // --- ALIGNMENT ---
         const BEZEL_H = 20; 
@@ -145,12 +146,8 @@
         }
 
         // --- FULLSCREEN REQUESTER (One-shot) ---
-        // Browsers block auto-fullscreen without interaction.
-        // We try once on load, just in case Kiosk allows it.
         if (!document.fullscreenElement) {
-             document.documentElement.requestFullscreen().catch(e => {
-                // Quiet fail
-             });
+             document.documentElement.requestFullscreen().catch(e => {});
         }
 
         // --- WAKE LOCK ---
