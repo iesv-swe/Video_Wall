@@ -67,7 +67,7 @@
     <script>
         // --- CONFIGURATION ---
         const STRETCH_START_TIME = 30; 
-        const VERSION = '7'; // Bumped to 7
+        const VERSION = '8'; // Bumped to 8
 
         // --- ALIGNMENT ---
         const BEZEL_H = 20; 
@@ -144,18 +144,14 @@
             }
         }
 
-        // --- FULLSCREEN ENFORCER (NEW) ---
-        // Repeatedly attempts to force the browser into Fullscreen API mode
-        function forceFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(e => {
-                    // It might fail without a user click, but in Kiosk mode
-                    // it sometimes allows it. We keep trying.
-                    console.log("Fullscreen request:", e.message);
-                });
-            }
+        // --- FULLSCREEN REQUESTER (One-shot) ---
+        // Browsers block auto-fullscreen without interaction.
+        // We try once on load, just in case Kiosk allows it.
+        if (!document.fullscreenElement) {
+             document.documentElement.requestFullscreen().catch(e => {
+                // Quiet fail
+             });
         }
-        setInterval(forceFullscreen, 2000); // Try every 2 seconds
 
         // --- WAKE LOCK ---
         let wakeLock = null;
