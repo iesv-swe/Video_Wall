@@ -1,20 +1,15 @@
 {
   "name": "Video Wall Kiosk",
   "short_name": "VideoWall",
-  "start_url": "/",
+  "scope": "/Video_Wall/",
+  "start_url": "/Video_Wall/",
   "display": "fullscreen",
   "background_color": "#000000",
   "theme_color": "#000000",
   "icons": [
-    {
-      "src": "https://iesv-swe.github.io/Video_Wall/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "https://iesv-swe.github.io/Video_Wall/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
+    {"src": "https://iesv-swe.github.io/Video_Wall/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "https://iesv-swe.github.io/Video_Wall/icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ],
+  "prefer_related_applications": false,
+  "shortcuts": [{"name": "Launch Wall", "url": "/Video_Wall/", "description": "Start video wall"}]
 }
