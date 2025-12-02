@@ -15,18 +15,32 @@
             background: #000;
             overflow: hidden;
             cursor: none;
+            /* NO ROTATION - Handle in G-Admin */
         }
         
-        /* AGGRESSIVELY HIDE CHROME OS SHELF/TASKBAR */
-        body::before {
+        /* HIDE CHROME OS SHELF AT TOP */
+        body::after {
             content: '';
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
+            height: 50px;
+            background: #000;
+            z-index: 999999;
+            pointer-events: none;
+        }
+        
+        /* HIDE GOOGLE SLIDES BAR AT BOTTOM */
+        body::before {
+            content: '';
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
             height: 60px;
             background: #000;
-            z-index: 99999;
+            z-index: 999999;
             pointer-events: none;
         }
         
@@ -44,39 +58,51 @@
         .container {
             width: 100vw;
             height: 100vh;
-            position: relative;
+            position: fixed;
+            top: 0;
+            left: 0;
         }
         
         .content-view {
-            width: 100%;
-            height: 100%;
-            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
             top: 0;
             left: 0;
             opacity: 0;
             transition: opacity 1s ease-in-out;
         }
         
+        /* Ensure content is below the overlays but visible */
+        .content-view {
+            z-index: 1 !important;
+        }
+        
         .content-view.active {
             opacity: 1;
-            z-index: 1;
+            z-index: 10000;
         }
         
         .slides-container {
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
         }
         
         iframe {
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             border: none;
+            display: block;
+            position: relative;
+            z-index: 1;
         }
         
         .image-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
             overflow: hidden;
         }
         
@@ -87,6 +113,7 @@
             top: -100vh; /* Bottom Left quadrant */
             left: 0;
             object-fit: fill;
+            z-index: 1;
         }
         
         .loading {
@@ -121,14 +148,14 @@
             screenId: "Screen 3 (Bottom Left)",
             
             // Google Slides URL for Screen 3
-            slidesUrl: "https://docs.google.com/presentation/d/e/2PACX-1vQ1NmctG-tMBiJZIqzzTygLbOgx1XxK-4VOto03sNqrt6g/embed?start=false&loop=false&delayms=3000",
+            slidesUrl: "https://docs.google.com/presentation/d/e/2PACX-1vQnl3QcwRGWqvJtWpizC5_Z_DcrIOProkFVlTc_Xsb-hoglSZw0rrMohidMomn5WO5JgeWO43IgOfeZ/embed?start=true&loop=true&delayms=3000",
             
             // Stretched image from GitHub
             imageUrl: "https://iesv-swe.github.io/Video_Wall/stretched.jpg",
             
-            // Rotation timing (in milliseconds)
-            slidesDisplayTime: 30000,  // Show slides for 30 seconds
-            imageDisplayTime: 10000,   // Show stretched image for 10 seconds
+            // CLOCK-SYNCED TIMING (syncs to system clock)
+            slidesDisplayTime: 45000,  // Show slides for 45 seconds (00 to 45)
+            imageDisplayTime: 15000,   // Show image for 15 seconds (45 to 00)
             
             // System settings
             pageRefreshInterval: 3600000,
@@ -137,24 +164,169 @@
 
         let currentView = 'slides';
         let rotationTimer = null;
+        let wakeLock = null;
+        let audioContext = null;
+        let oscillator = null;
+
+        // Request WakeLock to prevent screen sleep
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('🔒 WakeLock activated - screen will stay awake');
+                    
+                    wakeLock.addEventListener('release', () => {
+                        console.log('⚠️ WakeLock released, will re-request');
+                    });
+                } else {
+                    console.log('⚠️ WakeLock API not supported, using fallback methods');
+                }
+            } catch (err) {
+                console.error('❌ WakeLock request failed:', err);
+            }
+        }
+
+        // Create silent audio to prevent sleep (fallback method)
+        function createSilentAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                gainNode.gain.value = 0.001;
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator.frequency.value = 20;
+                oscillator.start();
+                console.log('🔊 Silent audio loop started (sleep prevention fallback)');
+            } catch (err) {
+                console.error('❌ Silent audio creation failed:', err);
+            }
+        }
+
+        // Additional aggressive wake methods
+        function preventSleep() {
+            const video = document.createElement('video');
+            video.setAttribute('loop', '');
+            video.setAttribute('muted', '');
+            video.setAttribute('playsinline', '');
+            video.style.position = 'fixed';
+            video.style.opacity = '0';
+            video.style.pointerEvents = 'none';
+            video.style.width = '1px';
+            video.style.height = '1px';
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, 1, 1);
+            
+            canvas.toBlob((blob) => {
+                video.src = URL.createObjectURL(blob);
+                video.play().catch(err => console.log('Video play prevented:', err));
+            }, 'video/webm');
+            
+            document.body.appendChild(video);
+            console.log('📹 Invisible video element added');
+            
+            setInterval(() => {
+                const event = new MouseEvent('mousemove', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                });
+                document.dispatchEvent(event);
+            }, 30000);
+            console.log('🖱️ Periodic activity simulation started');
+        }
+
+        // Re-request WakeLock if page becomes visible again
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible' && wakeLock !== null) {
+                await requestWakeLock();
+            }
+        });
+
+        function updateClock() {
+            const now = new Date();
+            const seconds = now.getSeconds();
+            const milliseconds = now.getMilliseconds();
+            const timeInCycle = (seconds * 1000) + milliseconds;
+            return { seconds, milliseconds, timeInCycle };
+        }
+
+        function startRotation() {
+            console.log('🔄 Starting CLOCK-SYNCED rotation...');
+            const { seconds, milliseconds, timeInCycle } = updateClock();
+            console.log(`⏰ Current time: ${seconds}.${milliseconds}s into the minute`);
+            
+            if (timeInCycle < CONFIG.slidesDisplayTime) {
+                console.log('📊 Should be showing SLIDES');
+                showView('slides');
+                const timeUntilImageSwitch = CONFIG.slidesDisplayTime - timeInCycle;
+                console.log(`⏱️ Switching to image in ${(timeUntilImageSwitch / 1000).toFixed(2)} seconds`);
+                rotationTimer = setTimeout(switchToImage, timeUntilImageSwitch);
+            } else {
+                console.log('🖼️ Should be showing IMAGE');
+                showView('image');
+                const timeUntilSlidesSwitch = 60000 - timeInCycle;
+                console.log(`⏱️ Switching to slides in ${(timeUntilSlidesSwitch / 1000).toFixed(2)} seconds`);
+                rotationTimer = setTimeout(switchToSlides, timeUntilSlidesSwitch);
+            }
+        }
+
+        function switchToImage() {
+            console.log('⏱️ Clock tick: Switching to IMAGE (at 45-second mark)');
+            showView('image');
+            rotationTimer = setTimeout(switchToSlides, CONFIG.imageDisplayTime);
+        }
+
+        function switchToSlides() {
+            console.log('⏱️ Clock tick: Switching to SLIDES (at 00-second mark)');
+            showView('slides');
+            rotationTimer = setTimeout(switchToImage, CONFIG.slidesDisplayTime);
+        }
 
         function initDisplay() {
+            console.log('🚀 Starting initDisplay...');
+            console.log('📊 Slides URL:', CONFIG.slidesUrl);
+            console.log('🖼️ Image URL:', CONFIG.imageUrl);
+            
             const slidesContainer = document.getElementById('slidesContainer');
             const iframe = document.createElement('iframe');
             iframe.src = CONFIG.slidesUrl;
             iframe.allow = "autoplay";
+            iframe.onload = function() {
+                console.log('✅ Slides iframe loaded successfully');
+            };
+            iframe.onerror = function() {
+                console.error('❌ Slides iframe failed to load');
+            };
             slidesContainer.appendChild(iframe);
+            console.log('📺 Slides iframe added to DOM');
             
             const img = document.getElementById('mainImage');
+            img.onload = function() {
+                console.log('✅ Stretched image loaded successfully');
+            };
+            img.onerror = function() {
+                console.error('❌ Stretched image failed to load');
+            };
             img.src = CONFIG.imageUrl;
+            console.log('🖼️ Image src set');
             
             setTimeout(() => {
+                console.log('⏰ 2 second wait complete, hiding loading...');
                 document.getElementById('loading').style.display = 'none';
+                console.log('👁️ Showing slides view...');
                 showView('slides');
+                console.log('🔄 Starting rotation...');
                 startRotation();
             }, 2000);
             
             setTimeout(() => {
+                console.log('🔄 Auto-refresh triggered after 1 hour');
                 location.reload();
             }, CONFIG.pageRefreshInterval);
             
@@ -164,6 +336,7 @@
         }
 
         function showView(viewName) {
+            console.log('👁️ showView called with:', viewName);
             const slidesView = document.getElementById('slidesView');
             const imageView = document.getElementById('imageView');
             
@@ -171,25 +344,13 @@
                 slidesView.classList.add('active');
                 imageView.classList.remove('active');
                 currentView = 'slides';
+                console.log('✅ Slides view now active');
             } else if (viewName === 'image') {
                 imageView.classList.add('active');
                 slidesView.classList.remove('active');
                 currentView = 'image';
+                console.log('✅ Image view now active');
             }
-        }
-
-        function startRotation() {
-            function rotate() {
-                if (currentView === 'slides') {
-                    showView('image');
-                    rotationTimer = setTimeout(rotate, CONFIG.imageDisplayTime);
-                } else {
-                    showView('slides');
-                    rotationTimer = setTimeout(rotate, CONFIG.slidesDisplayTime);
-                }
-            }
-            
-            rotationTimer = setTimeout(rotate, CONFIG.slidesDisplayTime);
         }
 
         function requestFullscreen() {
@@ -210,15 +371,28 @@
             }
         });
 
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
+            console.log('🌐 Page loaded, initializing...');
+            
+            await requestWakeLock();
+            createSilentAudio();
+            preventSleep();
+            
             initDisplay();
             setTimeout(requestFullscreen, 1000);
             
             setInterval(() => {
                 if (!document.fullscreenElement) {
+                    console.log('⚠️ Not in fullscreen, requesting again...');
                     requestFullscreen();
                 }
             }, 5000);
+            
+            setInterval(async () => {
+                if (wakeLock === null || document.visibilityState === 'visible') {
+                    await requestWakeLock();
+                }
+            }, 60000);
         });
 
         document.addEventListener('fullscreenchange', () => {
