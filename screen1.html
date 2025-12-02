@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrid Display - Screen 1</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            overflow: hidden;
+            cursor: none;
+            /* ROTATE 180 DEGREES FOR SCREEN 1 */
+            transform: rotate(180deg);
+            transform-origin: center center;
+        }
+        
+        /* AGGRESSIVELY HIDE CHROME OS SHELF/TASKBAR */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: #000;
+            z-index: 99999;
+            pointer-events: none;
+        }
+        
+        /* Hide any Chrome UI elements */
+        * {
+            -webkit-app-region: no-drag;
+        }
+        
+        html:fullscreen,
+        body:fullscreen {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        .container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        .content-view {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+        
+        .content-view.active {
+            opacity: 1;
+            z-index: 1;
+        }
+        
+        .slides-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .image-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stretched-image {
+            position: absolute;
+            width: 200vw;
+            height: 200vh;
+            top: 0;
+            left: 0;
+            object-fit: fill;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="loading" id="loading">Initializing display...</div>
+        
+        <!-- Slides View -->
+        <div class="content-view" id="slidesView">
+            <div class="slides-container" id="slidesContainer"></div>
+        </div>
+        
+        <!-- Image View -->
+        <div class="content-view" id="imageView">
+            <div class="image-container">
+                <img class="stretched-image" id="mainImage" alt="Display Image">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURATION - UPDATE THESE VALUES
+        const CONFIG = {
+            screenId: "Screen 1 (Top Left - Rotated 180°)",
+            
+            // Replace with your Google Slides embed URL
+            // Get from: File > Publish to web > Embed tab
+            slidesUrl: "https://docs.google.com/presentation/d/e/YOUR_SLIDES_ID_HERE/embed?start=true&loop=true&delayms=5000",
+            
+            // Your stretched image filename (upload to same folder as HTML files)
+            imageUrl: "stretched.png",
+            
+            // Rotation timing (in milliseconds)
+            slidesDisplayTime: 120000,  // Show slides for 2 minutes
+            imageDisplayTime: 30000,    // Show image for 30 seconds
+            
+            // System settings
+            pageRefreshInterval: 3600000, // Refresh page every hour
+            idlePreventInterval: 30000    // Prevent idle every 30 seconds
+        };
+
+        let currentView = 'slides';
+        let rotationTimer = null;
+
+        function initDisplay() {
+            // Load slides
+            const slidesContainer = document.getElementById('slidesContainer');
+            const iframe = document.createElement('iframe');
+            iframe.src = CONFIG.slidesUrl;
+            iframe.allow = "autoplay";
+            slidesContainer.appendChild(iframe);
+            
+            // Load image
+            const img = document.getElementById('mainImage');
+            img.src = CONFIG.imageUrl;
+            
+            // Wait for content to load, then start rotation
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+                showView('slides');
+                startRotation();
+            }, 2000);
+            
+            // Auto-refresh page periodically to prevent stale content
+            setTimeout(() => {
+                location.reload();
+            }, CONFIG.pageRefreshInterval);
+            
+            // Prevent idle/sleep by subtle opacity changes
+            setInterval(() => {
+                document.body.style.opacity = document.body.style.opacity === '0.9999' ? '1' : '0.9999';
+            }, CONFIG.idlePreventInterval);
+        }
+
+        function showView(viewName) {
+            const slidesView = document.getElementById('slidesView');
+            const imageView = document.getElementById('imageView');
+            
+            if (viewName === 'slides') {
+                slidesView.classList.add('active');
+                imageView.classList.remove('active');
+                currentView = 'slides';
+            } else if (viewName === 'image') {
+                imageView.classList.add('active');
+                slidesView.classList.remove('active');
+                currentView = 'image';
+            }
+        }
+
+        function startRotation() {
+            function rotate() {
+                if (currentView === 'slides') {
+                    // Switch to image
+                    showView('image');
+                    rotationTimer = setTimeout(rotate, CONFIG.imageDisplayTime);
+                } else {
+                    // Switch back to slides
+                    showView('slides');
+                    rotationTimer = setTimeout(rotate, CONFIG.slidesDisplayTime);
+                }
+            }
+            
+            // Start first rotation after initial slides display time
+            rotationTimer = setTimeout(rotate, CONFIG.slidesDisplayTime);
+        }
+
+        function requestFullscreen() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => {
+                    console.log('Fullscreen request failed:', err);
+                });
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            }
+        }
+
+        // Prevent right-click menu
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        
+        // Block most keyboard shortcuts (allow F11 for fullscreen)
+        document.addEventListener('keydown', e => {
+            if (e.key !== 'F11') {
+                e.preventDefault();
+            }
+        });
+
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            initDisplay();
+            setTimeout(requestFullscreen, 1000);
+        });
+
+        // Re-request fullscreen if user exits
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                setTimeout(requestFullscreen, 2000);
+            }
+        });
+
+        // Handle visibility changes to prevent sleep
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                console.log('Page hidden - keeping alive');
+            }
+        });
+    </script>
+</body>
+</html>
