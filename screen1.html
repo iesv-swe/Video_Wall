@@ -239,27 +239,150 @@
             }
         }
 
-        function startRotation() {
-            console.log('🔄 Rotation started');
-            function rotate() {
-                if (currentView === 'slides') {
-                    console.log('⏱️ Slides time complete, switching to image...');
-                    // Switch to image
-                    showView('image');
-                    rotationTimer = setTimeout(rotate, CONFIG.imageDisplayTime);
-                    console.log('⏱️ Image will show for', CONFIG.imageDisplayTime / 1000, 'seconds');
+        // Request WakeLock to prevent screen sleep
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('🔒 WakeLock activated - screen will stay awake');
+                    
+                    wakeLock.addEventListener('release', () => {
+                        console.log('⚠️ WakeLock released, will re-request');
+                    });
                 } else {
-                    console.log('⏱️ Image time complete, switching to slides...');
-                    // Switch back to slides
-                    showView('slides');
-                    rotationTimer = setTimeout(rotate, CONFIG.slidesDisplayTime);
-                    console.log('⏱️ Slides will show for', CONFIG.slidesDisplayTime / 1000, 'seconds');
+                    console.log('⚠️ WakeLock API not supported, using fallback methods');
                 }
+            } catch (err) {
+                console.error('❌ WakeLock request failed:', err);
             }
+        }
+
+        // Create silent audio to prevent sleep (fallback method)
+        function createSilentAudio() {
+            try {
+                // Create AudioContext
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Create oscillator (sound generator)
+                oscillator = audioContext.createOscillator();
+                
+                // Create gain node (volume control)
+                const gainNode = audioContext.createGain();
+                gainNode.gain.value = 0.001; // Nearly silent but not completely muted
+                
+                // Connect: oscillator -> gain -> output
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Set very low frequency (barely audible)
+                oscillator.frequency.value = 20;
+                
+                // Start the oscillator
+                oscillator.start();
+                
+                console.log('🔊 Silent audio loop started (sleep prevention fallback)');
+            } catch (err) {
+                console.error('❌ Silent audio creation failed:', err);
+            }
+        }
+
+        // Additional aggressive wake methods
+        function preventSleep() {
+            // Method 1: Video element playing (invisible)
+            const video = document.createElement('video');
+            video.setAttribute('loop', '');
+            video.setAttribute('muted', '');
+            video.setAttribute('playsinline', '');
+            video.style.position = 'fixed';
+            video.style.opacity = '0';
+            video.style.pointerEvents = 'none';
+            video.style.width = '1px';
+            video.style.height = '1px';
             
-            // Start first rotation after initial slides display time
-            rotationTimer = setTimeout(rotate, CONFIG.slidesDisplayTime);
-            console.log('⏱️ First rotation in', CONFIG.slidesDisplayTime / 1000, 'seconds');
+            // Create a tiny video blob (1 frame black)
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, 1, 1);
+            
+            canvas.toBlob((blob) => {
+                video.src = URL.createObjectURL(blob);
+                video.play().catch(err => console.log('Video play prevented:', err));
+            }, 'video/webm');
+            
+            document.body.appendChild(video);
+            console.log('📹 Invisible video element added');
+            
+            // Method 2: Periodic mouse movement simulation
+            setInterval(() => {
+                const event = new MouseEvent('mousemove', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                });
+                document.dispatchEvent(event);
+            }, 30000);
+            console.log('🖱️ Periodic activity simulation started');
+        }
+
+        // Re-request WakeLock if page becomes visible again
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible' && wakeLock !== null) {
+                await requestWakeLock();
+            }
+        });
+
+        function updateClock() {
+            const now = new Date();
+            const seconds = now.getSeconds();
+            const milliseconds = now.getMilliseconds();
+            
+            // Calculate exact time in the current minute cycle
+            const timeInCycle = (seconds * 1000) + milliseconds;
+            
+            return { seconds, milliseconds, timeInCycle };
+        }
+
+        function startRotation() {
+            console.log('🔄 Starting CLOCK-SYNCED rotation...');
+            
+            // Get current time position in the 60-second cycle
+            const { seconds, milliseconds, timeInCycle } = updateClock();
+            
+            console.log(`⏰ Current time: ${seconds}.${milliseconds}s into the minute`);
+            
+            // Determine what should be showing right now
+            if (timeInCycle < CONFIG.slidesDisplayTime) {
+                // We're in the slides period (0-45s)
+                console.log('📊 Should be showing SLIDES');
+                showView('slides');
+                const timeUntilImageSwitch = CONFIG.slidesDisplayTime - timeInCycle;
+                console.log(`⏱️ Switching to image in ${(timeUntilImageSwitch / 1000).toFixed(2)} seconds`);
+                rotationTimer = setTimeout(switchToImage, timeUntilImageSwitch);
+            } else {
+                // We're in the image period (45-60s)
+                console.log('🖼️ Should be showing IMAGE');
+                showView('image');
+                const timeUntilSlidesSwitch = 60000 - timeInCycle;
+                console.log(`⏱️ Switching to slides in ${(timeUntilSlidesSwitch / 1000).toFixed(2)} seconds`);
+                rotationTimer = setTimeout(switchToSlides, timeUntilSlidesSwitch);
+            }
+        }
+
+        function switchToImage() {
+            console.log('⏱️ Clock tick: Switching to IMAGE (at 45-second mark)');
+            showView('image');
+            // Image shows for exactly 15 seconds
+            rotationTimer = setTimeout(switchToSlides, CONFIG.imageDisplayTime);
+        }
+
+        function switchToSlides() {
+            console.log('⏱️ Clock tick: Switching to SLIDES (at 00-second mark)');
+            showView('slides');
+            // Slides show for exactly 45 seconds
+            rotationTimer = setTimeout(switchToImage, CONFIG.slidesDisplayTime);
         }
 
         function requestFullscreen() {
@@ -284,8 +407,14 @@
         });
 
         // Initialize when page loads
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             console.log('🌐 Page loaded, initializing...');
+            
+            // Activate ALL wake methods
+            await requestWakeLock();
+            createSilentAudio();
+            preventSleep();
+            
             initDisplay();
             setTimeout(requestFullscreen, 1000);
             
@@ -296,6 +425,13 @@
                     requestFullscreen();
                 }
             }, 5000);
+            
+            // Re-request WakeLock periodically as backup
+            setInterval(async () => {
+                if (wakeLock === null || document.visibilityState === 'visible') {
+                    await requestWakeLock();
+                }
+            }, 60000); // Every minute
         });
 
         // Re-request fullscreen if user exits
