@@ -295,8 +295,11 @@
             
             const slidesContainer = document.getElementById('slidesContainer');
             const iframe = document.createElement('iframe');
-            iframe.src = CONFIG.slidesUrl;
+            // Add cache-busting timestamp to force fresh content
+            const cacheBuster = '&cb=' + new Date().getTime();
+            iframe.src = CONFIG.slidesUrl + cacheBuster;
             iframe.allow = "autoplay";
+            console.log('🔄 Cache-buster added:', cacheBuster);
             iframe.onload = function() {
                 console.log('✅ Slides iframe loaded successfully');
             };
@@ -307,13 +310,15 @@
             console.log('📺 Slides iframe added to DOM');
             
             const img = document.getElementById('mainImage');
+            // Add cache-busting to image as well
+            const imgCacheBuster = '?cb=' + new Date().getTime();
+            img.src = CONFIG.imageUrl + imgCacheBuster;
             img.onload = function() {
                 console.log('✅ Stretched image loaded successfully');
             };
             img.onerror = function() {
                 console.error('❌ Stretched image failed to load');
             };
-            img.src = CONFIG.imageUrl;
             console.log('🖼️ Image src set');
             
             setTimeout(() => {
