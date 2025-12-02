@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hybrid Display - Screen 1</title>
+    <title>Video Wall - Screen 1</title>
     <style>
         * {
             margin: 0;
@@ -121,20 +121,19 @@
     </div>
 
     <script>
-        // CONFIGURATION - UPDATE THESE VALUES
+        // CONFIGURATION
         const CONFIG = {
             screenId: "Screen 1 (Top Left - Rotated 180°)",
             
-            // Replace with your Google Slides embed URL
-            // Get from: File > Publish to web > Embed tab
-            slidesUrl: "https://docs.google.com/presentation/d/e/YOUR_SLIDES_ID_HERE/embed?start=true&loop=true&delayms=5000",
+            // Google Slides URL for Screen 1
+            slidesUrl: "https://docs.google.com/presentation/d/e/2PACX-1vRcSZ1DyY4bD7MmKKQI8FE-Nc3RiuyiLcfNCyoW3FUTPAF1_s/embed?start=false&loop=false&delayms=3000",
             
-            // Your stretched image filename (upload to same folder as HTML files)
-            imageUrl: "stretched.png",
+            // Stretched image from GitHub
+            imageUrl: "https://iesv-swe.github.io/Video_Wall/stretched.jpg",
             
             // Rotation timing (in milliseconds)
-            slidesDisplayTime: 120000,  // Show slides for 2 minutes
-            imageDisplayTime: 30000,    // Show image for 30 seconds
+            slidesDisplayTime: 30000,  // Show slides for 30 seconds
+            imageDisplayTime: 10000,   // Show stretched image for 10 seconds
             
             // System settings
             pageRefreshInterval: 3600000, // Refresh page every hour
@@ -231,6 +230,13 @@
         window.addEventListener('load', () => {
             initDisplay();
             setTimeout(requestFullscreen, 1000);
+            
+            // Extra aggressive fullscreen enforcement
+            setInterval(() => {
+                if (!document.fullscreenElement) {
+                    requestFullscreen();
+                }
+            }, 5000);
         });
 
         // Re-request fullscreen if user exits
