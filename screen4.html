@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Wall - Screen 4</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #1a1a1a;
+            overflow: hidden;
+            cursor: none;
+        }
+        
+        /* AGGRESSIVELY HIDE CHROME OS SHELF/TASKBAR */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: #1a1a1a;
+            z-index: 99999;
+            pointer-events: none;
+        }
+        
+        /* Hide any Chrome UI elements */
+        * {
+            -webkit-app-region: no-drag;
+        }
+        
+        html:fullscreen,
+        body:fullscreen {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        .container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .clock-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 100000;
+        }
+        
+        .school-name {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .clock {
+            font-size: 28px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+        
+        .date {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-left: 20px;
+        }
+        
+        .content-area {
+            flex: 1;
+            position: relative;
+            background: #000;
+        }
+        
+        .content-view {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+        
+        .content-view.active {
+            opacity: 1;
+            z-index: 1;
+        }
+        
+        .slides-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .image-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stretched-image {
+            position: absolute;
+            width: 200vw;
+            height: 200vh;
+            top: -100vh; /* Bottom Right quadrant */
+            left: -100vw;
+            object-fit: fill;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="clock-bar">
+            <div class="school-name">IESV Video Wall</div>
+            <div style="display: flex; align-items: center;">
+                <div class="clock" id="clock">00:00:00</div>
+                <div class="date" id="date">Monday, 1 January 2024</div>
+            </div>
+        </div>
+        
+        <div class="content-area">
+            <div class="loading" id="loading">Initializing display...</div>
+            
+            <div class="content-view" id="slidesView">
+                <div class="slides-container" id="slidesContainer"></div>
+            </div>
+            
+            <div class="content-view" id="imageView">
+                <div class="image-container">
+                    <img class="stretched-image" id="mainImage" alt="Display Image">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURATION
+        const CONFIG = {
+            schoolName: "IESV Video Wall",
+            screenId: "Screen 4 (Bottom Right with Clock)",
+            
+            // Google Slides URL for Screen 4
+            slidesUrl: "https://docs.google.com/presentation/d/e/2PACX-1vT1VDRK_nib2V4adtqoM83uPGOksZl1yCHXrzMjceMaDuA/embed?start=false&loop=false&delayms=3000",
+            
+            // Stretched image from GitHub
+            imageUrl: "https://iesv-swe.github.io/Video_Wall/stretched.jpg",
+            
+            // Rotation timing (in milliseconds)
+            slidesDisplayTime: 30000,  // Show slides for 30 seconds
+            imageDisplayTime: 10000,   // Show stretched image for 10 seconds
+            
+            // System settings
+            pageRefreshInterval: 3600000,
+            idlePreventInterval: 30000
+        };
+
+        let currentView = 'slides';
+        let rotationTimer = null;
+
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('clock').textContent = `${hours}:${minutes}:${seconds}`;
+            
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('date').textContent = now.toLocaleDateString('en-GB', options);
+        }
+
+        function initDisplay() {
+            document.querySelector('.school-name').textContent = CONFIG.schoolName;
+            
+            const slidesContainer = document.getElementById('slidesContainer');
+            const iframe = document.createElement('iframe');
+            iframe.src = CONFIG.slidesUrl;
+            iframe.allow = "autoplay";
+            slidesContainer.appendChild(iframe);
+            
+            const img = document.getElementById('mainImage');
+            img.src = CONFIG.imageUrl;
+            
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+                showView('slides');
+                startRotation();
+            }, 2000);
+            
+            setTimeout(() => {
+                location.reload();
+            }, CONFIG.pageRefreshInterval);
+            
+            setInterval(() => {
+                document.body.style.opacity = document.body.style.opacity === '0.9999' ? '1' : '0.9999';
+            }, CONFIG.idlePreventInterval);
+        }
+
+        function showView(viewName) {
+            const slidesView = document.getElementById('slidesView');
+            const imageView = document.getElementById('imageView');
+            
+            if (viewName === 'slides') {
+                slidesView.classList.add('active');
+                imageView.classList.remove('active');
+                currentView = 'slides';
+            } else if (viewName === 'image') {
+                imageView.classList.add('active');
+                slidesView.classList.remove('active');
+                currentView = 'image';
+            }
+        }
+
+        function startRotation() {
+            function rotate() {
+                if (currentView === 'slides') {
+                    showView('image');
+                    rotationTimer = setTimeout(rotate, CONFIG.imageDisplayTime);
+                } else {
+                    showView('slides');
+                    rotationTimer = setTimeout(rotate, CONFIG.slidesDisplayTime);
+                }
+            }
+            
+            rotationTimer = setTimeout(rotate, CONFIG.slidesDisplayTime);
+        }
+
+        function requestFullscreen() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => {
+                    console.log('Fullscreen request failed:', err);
+                });
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            }
+        }
+
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (e.key !== 'F11') {
+                e.preventDefault();
+            }
+        });
+
+        window.addEventListener('load', () => {
+            initDisplay();
+            setTimeout(requestFullscreen, 1000);
+            
+            setInterval(() => {
+                if (!document.fullscreenElement) {
+                    requestFullscreen();
+                }
+            }, 5000);
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                setTimeout(requestFullscreen, 2000);
+            }
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                console.log('Page hidden - keeping alive');
+            }
+        });
+    </script>
+</body>
+</html>
