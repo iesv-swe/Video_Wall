@@ -21,16 +21,16 @@
         }
         
         /* AGGRESSIVELY HIDE CHROME OS SHELF/TASKBAR */
-        body::before {
+        body::after {
             content: '';
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            height: 60px;
-            background: #000;
-            z-index: 99999;
+            bottom: 0;
             pointer-events: none;
+            box-shadow: inset 0 0 0 80px #000;
+            z-index: 99999;
         }
         
         /* Hide any Chrome UI elements */
@@ -125,8 +125,8 @@
         const CONFIG = {
             screenId: "Screen 1 (Top Left - Rotated 180°)",
             
-            // Google Slides URL for Screen 1
-            slidesUrl: "https://docs.google.com/presentation/d/e/2PACX-1vQXrj85LfePttbPNZDiEy7IYk_ylxqgGxkDLfzgdRTIyY28DzYYJL6Er9wigdwy2IGOsFmVR8WzzNwa/embed?start=false&loop=false&delayms=3000",
+            // Google Slides URL for Screen 1 - Clean embed mode
+            slidesUrl: "https://docs.google.com/presentation/d/e/2PACX-1vQXrj85LfePttbPNZDiEy7IYk_ylxqgGxkDLfzgdRTIyY28DzYYJL6Er9wigdwy2IGOsFmVR8WzzNwa/embed?start=true&loop=true&delayms=3000&rm=minimal",
             
             // Stretched image from GitHub
             imageUrl: "https://iesv-swe.github.io/Video_Wall/stretched.jpg",
