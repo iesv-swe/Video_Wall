@@ -239,80 +239,27 @@
             }
         }
 
-        // Request WakeLock to prevent screen sleep
-        async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('🔒 WakeLock activated - screen will stay awake');
-                    
-                    wakeLock.addEventListener('release', () => {
-                        console.log('⚠️ WakeLock released, will re-request');
-                    });
-                } else {
-                    console.log('⚠️ WakeLock API not supported, using fallback methods');
-                }
-            } catch (err) {
-                console.error('❌ WakeLock request failed:', err);
-            }
-        }
-
-        // Re-request WakeLock if page becomes visible again
-        document.addEventListener('visibilitychange', async () => {
-            if (document.visibilityState === 'visible' && wakeLock !== null) {
-                await requestWakeLock();
-            }
-        });
-
-        function updateClock() {
-            const now = new Date();
-            const seconds = now.getSeconds();
-            const milliseconds = now.getMilliseconds();
-            
-            // Calculate exact time in the current minute cycle
-            const timeInCycle = (seconds * 1000) + milliseconds;
-            
-            return { seconds, milliseconds, timeInCycle };
-        }
-
         function startRotation() {
-            console.log('🔄 Starting CLOCK-SYNCED rotation...');
-            
-            // Get current time position in the 60-second cycle
-            const { seconds, milliseconds, timeInCycle } = updateClock();
-            
-            console.log(`⏰ Current time: ${seconds}.${milliseconds}s into the minute`);
-            
-            // Determine what should be showing right now
-            if (timeInCycle < CONFIG.slidesDisplayTime) {
-                // We're in the slides period (0-45s)
-                console.log('📊 Should be showing SLIDES');
-                showView('slides');
-                const timeUntilImageSwitch = CONFIG.slidesDisplayTime - timeInCycle;
-                console.log(`⏱️ Switching to image in ${(timeUntilImageSwitch / 1000).toFixed(2)} seconds`);
-                rotationTimer = setTimeout(switchToImage, timeUntilImageSwitch);
-            } else {
-                // We're in the image period (45-60s)
-                console.log('🖼️ Should be showing IMAGE');
-                showView('image');
-                const timeUntilSlidesSwitch = 60000 - timeInCycle;
-                console.log(`⏱️ Switching to slides in ${(timeUntilSlidesSwitch / 1000).toFixed(2)} seconds`);
-                rotationTimer = setTimeout(switchToSlides, timeUntilSlidesSwitch);
+            console.log('🔄 Rotation started');
+            function rotate() {
+                if (currentView === 'slides') {
+                    console.log('⏱️ Slides time complete, switching to image...');
+                    // Switch to image
+                    showView('image');
+                    rotationTimer = setTimeout(rotate, CONFIG.imageDisplayTime);
+                    console.log('⏱️ Image will show for', CONFIG.imageDisplayTime / 1000, 'seconds');
+                } else {
+                    console.log('⏱️ Image time complete, switching to slides...');
+                    // Switch back to slides
+                    showView('slides');
+                    rotationTimer = setTimeout(rotate, CONFIG.slidesDisplayTime);
+                    console.log('⏱️ Slides will show for', CONFIG.slidesDisplayTime / 1000, 'seconds');
+                }
             }
-        }
-
-        function switchToImage() {
-            console.log('⏱️ Clock tick: Switching to IMAGE (at 45-second mark)');
-            showView('image');
-            // Image shows for exactly 15 seconds
-            rotationTimer = setTimeout(switchToSlides, CONFIG.imageDisplayTime);
-        }
-
-        function switchToSlides() {
-            console.log('⏱️ Clock tick: Switching to SLIDES (at 00-second mark)');
-            showView('slides');
-            // Slides show for exactly 45 seconds
-            rotationTimer = setTimeout(switchToImage, CONFIG.slidesDisplayTime);
+            
+            // Start first rotation after initial slides display time
+            rotationTimer = setTimeout(rotate, CONFIG.slidesDisplayTime);
+            console.log('⏱️ First rotation in', CONFIG.slidesDisplayTime / 1000, 'seconds');
         }
 
         function requestFullscreen() {
@@ -337,12 +284,8 @@
         });
 
         // Initialize when page loads
-        window.addEventListener('load', async () => {
+        window.addEventListener('load', () => {
             console.log('🌐 Page loaded, initializing...');
-            
-            // Request WakeLock immediately
-            await requestWakeLock();
-            
             initDisplay();
             setTimeout(requestFullscreen, 1000);
             
@@ -353,13 +296,6 @@
                     requestFullscreen();
                 }
             }, 5000);
-            
-            // Re-request WakeLock periodically as backup
-            setInterval(async () => {
-                if (wakeLock === null || document.visibilityState === 'visible') {
-                    await requestWakeLock();
-                }
-            }, 60000); // Every minute
         });
 
         // Re-request fullscreen if user exits
