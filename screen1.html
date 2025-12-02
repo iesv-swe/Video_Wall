@@ -33,6 +33,19 @@
             pointer-events: none;
         }
         
+        /* HIDE GOOGLE SLIDES BAR AT BOTTOM */
+        body::before {
+            content: '';
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: #000;
+            z-index: 999999;
+            pointer-events: none;
+        }
+        
         /* Ensure content is below the top bar overlay but visible */
         .content-view {
             z-index: 1 !important;
@@ -84,9 +97,6 @@
             display: block;
             position: relative;
             z-index: 1;
-            /* Try to hide Google Slides controls */
-            transform: scale(1.05);
-            transform-origin: center center;
         }
         
         .image-container {
