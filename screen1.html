@@ -29,8 +29,13 @@
             right: 0;
             height: 50px;
             background: #000;
-            z-index: 99999;
+            z-index: 999999;
             pointer-events: none;
+        }
+        
+        /* Ensure content is below the top bar overlay but visible */
+        .content-view {
+            z-index: 1 !important;
         }
         
         /* Hide any Chrome UI elements */
@@ -64,7 +69,7 @@
         
         .content-view.active {
             opacity: 1;
-            z-index: 1;
+            z-index: 10000;
         }
         
         .slides-container {
@@ -77,6 +82,8 @@
             height: 100vh;
             border: none;
             display: block;
+            position: relative;
+            z-index: 1;
         }
         
         .image-container {
@@ -95,6 +102,7 @@
             top: 0;
             left: 0;
             object-fit: fill;
+            z-index: 1;
         }
         
         .loading {
