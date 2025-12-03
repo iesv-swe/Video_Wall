@@ -15,33 +15,6 @@
             background: #000;
             overflow: hidden;
             cursor: none;
-            /* NO ROTATION - Handle in G-Admin */
-        }
-        
-        /* HIDE CHROME OS SHELF AT TOP */
-        body::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 50px;
-            background: #000;
-            z-index: 999999;
-            pointer-events: none;
-        }
-        
-        /* HIDE GOOGLE SLIDES BAR AT BOTTOM */
-        body::before {
-            content: '';
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background: #000;
-            z-index: 999999;
-            pointer-events: none;
         }
         
         /* Hide any Chrome UI elements */
@@ -53,6 +26,29 @@
         body:fullscreen {
             width: 100% !important;
             height: 100% !important;
+        }
+        
+        /* AGGRESSIVE BAR HIDING - Real HTML elements with max z-index */
+        .top-bar-cover {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: #000;
+            z-index: 2147483647;
+            pointer-events: none;
+        }
+        
+        .bottom-bar-cover {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: #000;
+            z-index: 2147483647;
+            pointer-events: none;
         }
         
         .container {
@@ -71,11 +67,7 @@
             left: 0;
             opacity: 0;
             transition: opacity 1s ease-in-out;
-        }
-        
-        /* Ensure content is below the overlays but visible */
-        .content-view {
-            z-index: 1 !important;
+            z-index: 1;
         }
         
         .content-view.active {
@@ -128,6 +120,10 @@
     </style>
 </head>
 <body>
+    <!-- Bar covers as real HTML elements -->
+    <div class="top-bar-cover"></div>
+    <div class="bottom-bar-cover"></div>
+    
     <div class="container">
         <div class="loading" id="loading">Initializing display...</div>
         
