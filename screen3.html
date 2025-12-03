@@ -11,44 +11,21 @@
             box-sizing: border-box;
         }
         
-        body {
+        html, body {
+            width: 100%;
+            height: 100%;
             background: #000;
             overflow: hidden;
             cursor: none;
-        }
-        
-        /* Hide any Chrome UI elements */
-        * {
             -webkit-app-region: no-drag;
         }
         
         html:fullscreen,
-        body:fullscreen {
+        body:fullscreen,
+        html:-webkit-full-screen,
+        body:-webkit-full-screen {
             width: 100% !important;
             height: 100% !important;
-        }
-        
-        /* AGGRESSIVE BAR HIDING - Real HTML elements with max z-index */
-        .top-bar-cover {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 50px;
-            background: #000;
-            z-index: 2147483647;
-            pointer-events: none;
-        }
-        
-        .bottom-bar-cover {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background: #000;
-            z-index: 2147483647;
-            pointer-events: none;
         }
         
         .container {
@@ -57,6 +34,29 @@
             position: fixed;
             top: 0;
             left: 0;
+            background: #000;
+        }
+        
+        .top-cover {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: #000;
+            z-index: 999999999;
+            pointer-events: none;
+        }
+        
+        .bottom-cover {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: #000;
+            z-index: 999999999;
+            pointer-events: none;
         }
         
         .content-view {
@@ -72,7 +72,7 @@
         
         .content-view.active {
             opacity: 1;
-            z-index: 10000;
+            z-index: 100;
         }
         
         .slides-container {
@@ -85,16 +85,11 @@
             height: 100vh;
             border: none;
             display: block;
-            position: relative;
-            z-index: 1;
         }
         
         .image-container {
             width: 100vw;
             height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
             overflow: hidden;
         }
         
@@ -102,14 +97,13 @@
             position: absolute;
             width: 200vw;
             height: 200vh;
-            top: -100vh; /* Bottom Left quadrant */
+            top: -100vh;
             left: 0;
             object-fit: fill;
-            z-index: 1;
         }
         
         .loading {
-            position: absolute;
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
@@ -120,9 +114,8 @@
     </style>
 </head>
 <body>
-    <!-- Bar covers as real HTML elements -->
-    <div class="top-bar-cover"></div>
-    <div class="bottom-bar-cover"></div>
+    <div class="top-cover"></div>
+    <div class="bottom-cover"></div>
     
     <div class="container">
         <div class="loading" id="loading">Initializing display...</div>
@@ -139,21 +132,12 @@
     </div>
 
     <script>
-        // CONFIGURATION
         const CONFIG = {
             screenId: "Screen 3 (Bottom Left)",
-            
-            // Google Slides URL for Screen 3
             slidesUrl: "https://docs.google.com/presentation/d/e/2PACX-1vQnl3QcwRGWqvJtWpizC5_Z_DcrIOProkFVlTc_Xsb-hoglSZw0rrMohidMomn5WO5JgeWO43IgOfeZ/embed?start=true&loop=true&delayms=3000",
-            
-            // Stretched image from GitHub
             imageUrl: "https://iesv-swe.github.io/Video_Wall/stretched.jpg",
-            
-            // CLOCK-SYNCED TIMING (syncs to system clock)
-            slidesDisplayTime: 45000,  // Show slides for 45 seconds (00 to 45)
-            imageDisplayTime: 15000,   // Show image for 15 seconds (45 to 00)
-            
-            // System settings
+            slidesDisplayTime: 45000,
+            imageDisplayTime: 15000,
             pageRefreshInterval: 3600000,
             idlePreventInterval: 30000
         };
@@ -164,25 +148,15 @@
         let audioContext = null;
         let oscillator = null;
 
-        // Request WakeLock to prevent screen sleep
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('🔒 WakeLock activated - screen will stay awake');
-                    
-                    wakeLock.addEventListener('release', () => {
-                        console.log('⚠️ WakeLock released, will re-request');
-                    });
-                } else {
-                    console.log('⚠️ WakeLock API not supported, using fallback methods');
+                    wakeLock.addEventListener('release', () => {});
                 }
-            } catch (err) {
-                console.error('❌ WakeLock request failed:', err);
-            }
+            } catch (err) {}
         }
 
-        // Create silent audio to prevent sleep (fallback method)
         function createSilentAudio() {
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -193,13 +167,9 @@
                 gainNode.connect(audioContext.destination);
                 oscillator.frequency.value = 20;
                 oscillator.start();
-                console.log('🔊 Silent audio loop started (sleep prevention fallback)');
-            } catch (err) {
-                console.error('❌ Silent audio creation failed:', err);
-            }
+            } catch (err) {}
         }
 
-        // Additional aggressive wake methods
         function preventSleep() {
             const video = document.createElement('video');
             video.setAttribute('loop', '');
@@ -207,205 +177,110 @@
             video.setAttribute('playsinline', '');
             video.style.position = 'fixed';
             video.style.opacity = '0';
-            video.style.pointerEvents = 'none';
             video.style.width = '1px';
             video.style.height = '1px';
             
             const canvas = document.createElement('canvas');
             canvas.width = 1;
             canvas.height = 1;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, 1, 1);
+            canvas.getContext('2d').fillRect(0, 0, 1, 1);
             
             canvas.toBlob((blob) => {
                 video.src = URL.createObjectURL(blob);
-                video.play().catch(err => console.log('Video play prevented:', err));
-            }, 'video/webm');
+                video.play().catch(() => {});
+            });
             
             document.body.appendChild(video);
-            console.log('📹 Invisible video element added');
-            
-            setInterval(() => {
-                const event = new MouseEvent('mousemove', {
-                    bubbles: true,
-                    cancelable: true,
-                    view: window
-                });
-                document.dispatchEvent(event);
-            }, 30000);
-            console.log('🖱️ Periodic activity simulation started');
+            setInterval(() => document.dispatchEvent(new MouseEvent('mousemove')), 30000);
         }
 
-        // Re-request WakeLock if page becomes visible again
         document.addEventListener('visibilitychange', async () => {
-            if (document.visibilityState === 'visible' && wakeLock !== null) {
-                await requestWakeLock();
-            }
+            if (document.visibilityState === 'visible') await requestWakeLock();
         });
 
         function updateClock() {
             const now = new Date();
-            const seconds = now.getSeconds();
-            const milliseconds = now.getMilliseconds();
-            const timeInCycle = (seconds * 1000) + milliseconds;
-            return { seconds, milliseconds, timeInCycle };
+            return { timeInCycle: (now.getSeconds() * 1000) + now.getMilliseconds() };
         }
 
         function startRotation() {
-            console.log('🔄 Starting CLOCK-SYNCED rotation...');
-            const { seconds, milliseconds, timeInCycle } = updateClock();
-            console.log(`⏰ Current time: ${seconds}.${milliseconds}s into the minute`);
+            const { timeInCycle } = updateClock();
             
             if (timeInCycle < CONFIG.slidesDisplayTime) {
-                console.log('📊 Should be showing SLIDES');
                 showView('slides');
-                const timeUntilImageSwitch = CONFIG.slidesDisplayTime - timeInCycle;
-                console.log(`⏱️ Switching to image in ${(timeUntilImageSwitch / 1000).toFixed(2)} seconds`);
-                rotationTimer = setTimeout(switchToImage, timeUntilImageSwitch);
+                rotationTimer = setTimeout(switchToImage, CONFIG.slidesDisplayTime - timeInCycle);
             } else {
-                console.log('🖼️ Should be showing IMAGE');
                 showView('image');
-                const timeUntilSlidesSwitch = 60000 - timeInCycle;
-                console.log(`⏱️ Switching to slides in ${(timeUntilSlidesSwitch / 1000).toFixed(2)} seconds`);
-                rotationTimer = setTimeout(switchToSlides, timeUntilSlidesSwitch);
+                rotationTimer = setTimeout(switchToSlides, 60000 - timeInCycle);
             }
         }
 
         function switchToImage() {
-            console.log('⏱️ Clock tick: Switching to IMAGE (at 45-second mark)');
             showView('image');
             rotationTimer = setTimeout(switchToSlides, CONFIG.imageDisplayTime);
         }
 
         function switchToSlides() {
-            console.log('⏱️ Clock tick: Switching to SLIDES (at 00-second mark)');
             showView('slides');
             rotationTimer = setTimeout(switchToImage, CONFIG.slidesDisplayTime);
         }
 
         function initDisplay() {
-            console.log('🚀 Starting initDisplay...');
-            console.log('📊 Slides URL:', CONFIG.slidesUrl);
-            console.log('🖼️ Image URL:', CONFIG.imageUrl);
-            
-            const slidesContainer = document.getElementById('slidesContainer');
             const iframe = document.createElement('iframe');
-            // Add cache-busting timestamp to force fresh content
-            const cacheBuster = '&cb=' + new Date().getTime();
-            iframe.src = CONFIG.slidesUrl + cacheBuster;
+            iframe.src = CONFIG.slidesUrl + '&cb=' + new Date().getTime();
             iframe.allow = "autoplay";
-            console.log('🔄 Cache-buster added:', cacheBuster);
-            iframe.onload = function() {
-                console.log('✅ Slides iframe loaded successfully');
-            };
-            iframe.onerror = function() {
-                console.error('❌ Slides iframe failed to load');
-            };
-            slidesContainer.appendChild(iframe);
-            console.log('📺 Slides iframe added to DOM');
+            document.getElementById('slidesContainer').appendChild(iframe);
             
-            const img = document.getElementById('mainImage');
-            // Add cache-busting to image as well
-            const imgCacheBuster = '?cb=' + new Date().getTime();
-            img.onload = function() {
-                console.log('✅ Stretched image loaded successfully');
-            };
-            img.onerror = function() {
-                console.error('❌ Stretched image failed to load');
-            };
-            img.src = CONFIG.imageUrl + imgCacheBuster;
-            console.log('🖼️ Image src set');
+            document.getElementById('mainImage').src = CONFIG.imageUrl + '?cb=' + new Date().getTime();
             
             setTimeout(() => {
-                console.log('⏰ 2 second wait complete, hiding loading...');
                 document.getElementById('loading').style.display = 'none';
-                console.log('👁️ Showing slides view...');
-                showView('slides');
-                console.log('🔄 Starting rotation...');
                 startRotation();
             }, 2000);
             
-            setTimeout(() => {
-                console.log('🔄 Auto-refresh triggered after 1 hour');
-                location.reload();
-            }, CONFIG.pageRefreshInterval);
-            
+            setTimeout(() => location.reload(), CONFIG.pageRefreshInterval);
             setInterval(() => {
                 document.body.style.opacity = document.body.style.opacity === '0.9999' ? '1' : '0.9999';
             }, CONFIG.idlePreventInterval);
         }
 
         function showView(viewName) {
-            console.log('👁️ showView called with:', viewName);
             const slidesView = document.getElementById('slidesView');
             const imageView = document.getElementById('imageView');
             
             if (viewName === 'slides') {
                 slidesView.classList.add('active');
                 imageView.classList.remove('active');
-                currentView = 'slides';
-                console.log('✅ Slides view now active');
-            } else if (viewName === 'image') {
+            } else {
                 imageView.classList.add('active');
                 slidesView.classList.remove('active');
-                currentView = 'image';
-                console.log('✅ Image view now active');
             }
         }
 
         function requestFullscreen() {
             const elem = document.documentElement;
             if (elem.requestFullscreen) {
-                elem.requestFullscreen().catch(err => {
-                    console.log('Fullscreen request failed:', err);
-                });
+                elem.requestFullscreen().catch(() => {});
             } else if (elem.webkitRequestFullscreen) {
                 elem.webkitRequestFullscreen();
             }
         }
 
         document.addEventListener('contextmenu', e => e.preventDefault());
-        document.addEventListener('keydown', e => {
-            if (e.key !== 'F11') {
-                e.preventDefault();
-            }
-        });
+        document.addEventListener('keydown', e => { if (e.key !== 'F11') e.preventDefault(); });
 
         window.addEventListener('load', async () => {
-            console.log('🌐 Page loaded, initializing...');
-            
             await requestWakeLock();
             createSilentAudio();
             preventSleep();
-            
             initDisplay();
             setTimeout(requestFullscreen, 1000);
-            
-            setInterval(() => {
-                if (!document.fullscreenElement) {
-                    console.log('⚠️ Not in fullscreen, requesting again...');
-                    requestFullscreen();
-                }
-            }, 5000);
-            
-            setInterval(async () => {
-                if (wakeLock === null || document.visibilityState === 'visible') {
-                    await requestWakeLock();
-                }
-            }, 60000);
+            setInterval(() => { if (!document.fullscreenElement) requestFullscreen(); }, 5000);
+            setInterval(async () => { if (!wakeLock) await requestWakeLock(); }, 60000);
         });
 
         document.addEventListener('fullscreenchange', () => {
-            if (!document.fullscreenElement) {
-                setTimeout(requestFullscreen, 2000);
-            }
-        });
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                console.log('Page hidden - keeping alive');
-            }
+            if (!document.fullscreenElement) setTimeout(requestFullscreen, 2000);
         });
     </script>
 </body>
