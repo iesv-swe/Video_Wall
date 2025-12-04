@@ -121,7 +121,7 @@
     <script>
         const CONFIG = {
             screenId: "Screen 1 (Top Left)",
-            slidesUrl: "https://docs.google.com/presentation/d/e/2PACX-1vQXrj85LfePttbPNZDiEy7IYk_ylxqgGxkDLfzgdRTIyY28DzYYJL6Er9wigdwy2IGOsFmVR8WzzNwa/embed?start=true&loop=true&delayms=3000",
+            slidesUrl: "https://docs.google.com/presentation/d/1DyY4bD7MmKKQI8FE-Nc3RiuyiLcfNCyoW3FUTPAF1_s/present?start=true&loop=true&delayms=3000",
             imageUrl: "https://iesv-swe.github.io/Video_Wall/stretched.jpg",
             slidesDisplayTime: 45000,
             imageDisplayTime: 15000,
@@ -281,7 +281,7 @@
                     const touch2 = new TouchEvent('touchend', { bubbles: true, cancelable: true });
                     document.dispatchEvent(touch2);
                 }, 100);
-            }, 500);
+            }, 5000);
             
             setTimeout(requestFullscreen, 1000);
             setInterval(() => { if (!document.fullscreenElement) requestFullscreen(); }, 5000);
