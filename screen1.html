@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IESV Video Wall - Screen 1</title>
+    <title>Video Wall - Screen 1</title>
     <style>
         * {
             margin: 0;
@@ -11,112 +11,278 @@
             box-sizing: border-box;
         }
         
-        body {
+        html, body {
+            width: 100%;
+            height: 100%;
             background: #000;
             overflow: hidden;
             cursor: none;
+            -webkit-app-region: no-drag;
             transform: rotate(180deg);
         }
         
-        /* BLACK BAR TO COVER CHROME OS SHELF */
-        #top-bar {
+        html:fullscreen,
+        body:fullscreen,
+        html:-webkit-full-screen,
+        body:-webkit-full-screen {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        .container {
+            width: 100vw;
+            height: 100vh;
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 200px;
             background: #000;
-            z-index: 9999;
         }
         
-        #content {
+        .top-cover {
             position: fixed;
-            top: 200px;
+            top: 0;
             left: 0;
-            width: 100%;
-            height: calc(100vh - 200px);
+            right: 0;
+            height: 80px;
+            background: #000;
+            z-index: 999999999;
+            pointer-events: none;
+        }
+        
+        .bottom-cover {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: #000;
+            z-index: 999999999;
+            pointer-events: none;
+        }
+        
+        .content-view {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+            z-index: 1;
+        }
+        
+        .content-view.active {
+            opacity: 1;
+            z-index: 100;
+        }
+        
+        .slides-container {
+            width: 100vw;
+            height: 100vh;
         }
         
         iframe {
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             border: none;
             display: block;
         }
         
-        .slide-view {
-            display: block;
+        .image-container {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
         }
         
-        .image-view {
-            display: none;
+        .stretched-image {
+            position: absolute;
+            width: 200vw;
+            height: 200vh;
+            top: 0;
+            left: 0;
+            object-fit: fill;
         }
         
-        .image-view img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 10;
         }
     </style>
 </head>
 <body>
-    <div id="top-bar"></div>
-    <div id="content">
-        <div class="slide-view">
-            <iframe src=""></iframe>
+    <div class="top-cover"></div>
+    <div class="bottom-cover"></div>
+    
+    <div class="container">
+        <div class="loading" id="loading">Initializing display...</div>
+        
+        <div class="content-view" id="slidesView">
+            <div class="slides-container" id="slidesContainer"></div>
         </div>
-        <div class="image-view">
-            <img src="" alt="Video Wall Background">
+        
+        <div class="content-view" id="imageView">
+            <div class="image-container">
+                <img class="stretched-image" id="mainImage" alt="Display Image">
+            </div>
         </div>
     </div>
 
     <script>
-        const SLIDES_URL = 'https://docs.google.com/presentation/d/e/2PACX-1vQXrj85LfePttbPNZDiEy7IYk_ylxqgGxkDLfzgdRTIyY28DzYYJL6Er9wigdwy2IGOsFmVR8WzzNwa/embed?start=true&loop=true&delayms=3000';
-        const IMAGE_URL = 'https://iesv-swe.github.io/Video_Wall/stretched.jpg';
-        const SWITCH_INTERVAL = 30000; // 30 seconds
-        const REFRESH_INTERVAL = 3600000; // 1 hour
-        
+        const CONFIG = {
+            screenId: "Screen 1 (Top Left)",
+            slidesUrl: "https://docs.google.com/presentation/d/e/2PACX-1vQXrj85LfePttbPNZDiEy7IYk_ylxqgGxkDLfzgdRTIyY28DzYYJL6Er9wigdwy2IGOsFmVR8WzzNwa/embed?start=true&loop=true&delayms=3000",
+            imageUrl: "https://iesv-swe.github.io/Video_Wall/stretched.jpg",
+            slidesDisplayTime: 45000,
+            imageDisplayTime: 15000,
+            pageRefreshInterval: 3600000,
+            idlePreventInterval: 30000
+        };
+
         let currentView = 'slides';
-        
-        function addCacheBuster(url) {
-            const separator = url.includes('?') ? '&' : '?';
-            const timestamp = new Date().getTime();
-            console.log(`🔄 Cache-buster added: ${separator}cb=${timestamp}`);
-            return `${url}${separator}cb=${timestamp}`;
+        let rotationTimer = null;
+        let wakeLock = null;
+        let audioContext = null;
+        let oscillator = null;
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => {});
+                }
+            } catch (err) {}
         }
-        
-        function loadContent() {
-            const slideFrame = document.querySelector('.slide-view iframe');
-            const imageElement = document.querySelector('.image-view img');
-            
-            slideFrame.src = addCacheBuster(SLIDES_URL);
-            imageElement.src = addCacheBuster(IMAGE_URL);
+
+        function createSilentAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                gainNode.gain.value = 0.001;
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator.frequency.value = 20;
+                oscillator.start();
+            } catch (err) {}
         }
-        
-        function switchContent() {
-            const slideView = document.querySelector('.slide-view');
-            const imageView = document.querySelector('.image-view');
+
+        function preventSleep() {
+            const video = document.createElement('video');
+            video.setAttribute('loop', '');
+            video.setAttribute('muted', '');
+            video.setAttribute('playsinline', '');
+            video.style.position = 'fixed';
+            video.style.opacity = '0';
+            video.style.width = '1px';
+            video.style.height = '1px';
             
-            if (currentView === 'slides') {
-                slideView.style.display = 'none';
-                imageView.style.display = 'block';
-                currentView = 'image';
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            canvas.getContext('2d').fillRect(0, 0, 1, 1);
+            
+            canvas.toBlob((blob) => {
+                video.src = URL.createObjectURL(blob);
+                video.play().catch(() => {});
+            });
+            
+            document.body.appendChild(video);
+            setInterval(() => document.dispatchEvent(new MouseEvent('mousemove')), 30000);
+        }
+
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible') await requestWakeLock();
+        });
+
+        function updateClock() {
+            const now = new Date();
+            return { timeInCycle: (now.getSeconds() * 1000) + now.getMilliseconds() };
+        }
+
+        function startRotation() {
+            const { timeInCycle } = updateClock();
+            
+            if (timeInCycle < CONFIG.slidesDisplayTime) {
+                showView('slides');
+                rotationTimer = setTimeout(switchToImage, CONFIG.slidesDisplayTime - timeInCycle);
             } else {
-                slideView.style.display = 'block';
-                imageView.style.display = 'none';
-                currentView = 'slides';
+                showView('image');
+                rotationTimer = setTimeout(switchToSlides, 60000 - timeInCycle);
             }
         }
-        
-        function init() {
-            loadContent();
-            setInterval(switchContent, SWITCH_INTERVAL);
-            setInterval(() => {
-                location.reload();
-            }, REFRESH_INTERVAL);
+
+        function switchToImage() {
+            showView('image');
+            rotationTimer = setTimeout(switchToSlides, CONFIG.imageDisplayTime);
         }
-        
-        window.addEventListener('load', init);
+
+        function switchToSlides() {
+            showView('slides');
+            rotationTimer = setTimeout(switchToImage, CONFIG.slidesDisplayTime);
+        }
+
+        function initDisplay() {
+            const iframe = document.createElement('iframe');
+            iframe.src = CONFIG.slidesUrl + '&cb=' + new Date().getTime();
+            iframe.allow = "autoplay";
+            document.getElementById('slidesContainer').appendChild(iframe);
+            
+            document.getElementById('mainImage').src = CONFIG.imageUrl + '?cb=' + new Date().getTime();
+            
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+                startRotation();
+            }, 2000);
+            
+            setTimeout(() => location.reload(), CONFIG.pageRefreshInterval);
+            setInterval(() => {
+                document.body.style.opacity = document.body.style.opacity === '0.9999' ? '1' : '0.9999';
+            }, CONFIG.idlePreventInterval);
+        }
+
+        function showView(viewName) {
+            const slidesView = document.getElementById('slidesView');
+            const imageView = document.getElementById('imageView');
+            
+            if (viewName === 'slides') {
+                slidesView.classList.add('active');
+                imageView.classList.remove('active');
+            } else {
+                imageView.classList.add('active');
+                slidesView.classList.remove('active');
+            }
+        }
+
+        function requestFullscreen() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(() => {});
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            }
+        }
+
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => { if (e.key !== 'F11') e.preventDefault(); });
+
+        window.addEventListener('load', async () => {
+            await requestWakeLock();
+            createSilentAudio();
+            preventSleep();
+            initDisplay();
+            setTimeout(requestFullscreen, 1000);
+            setInterval(() => { if (!document.fullscreenElement) requestFullscreen(); }, 5000);
+            setInterval(async () => { if (!wakeLock) await requestWakeLock(); }, 60000);
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) setTimeout(requestFullscreen, 2000);
+        });
     </script>
 </body>
 </html>
