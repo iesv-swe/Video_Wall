@@ -98,10 +98,21 @@
             font-size: 24px;
             z-index: 10;
         }
+        
+        /* Hide Google Slides bar at bottom */
+        .bottom-cover {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: #000;
+            z-index: 999999999;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
-    <div class="top-cover"></div>
     <div class="bottom-cover"></div>
     
     <div class="container">
@@ -121,7 +132,7 @@
     <script>
         const CONFIG = {
             screenId: "Screen 1 (Top Left)",
-            slidesUrl: "https://docs.google.com/presentation/d/1DyY4bD7MmKKQI8FE-Nc3RiuyiLcfNCyoW3FUTPAF1_s/present?start=true&loop=true&delayms=3000",
+            slidesUrl: "https://docs.google.com/presentation/d/1DyY4bD7MmKKQI8FE-Nc3RiuyiLcfNCyoW3FUTPAF1_s/embed?start=true&loop=true&delayms=3000",
             imageUrl: "https://iesv-swe.github.io/Video_Wall/stretched.jpg",
             slidesDisplayTime: 45000,
             imageDisplayTime: 15000,
