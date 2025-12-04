@@ -39,25 +39,11 @@
         }
         
         .top-cover {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 150px;
-            background: #000;
-            z-index: 999999999;
-            pointer-events: none;
+            display: none;
         }
         
         .bottom-cover {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 80px;
-            background: #000;
-            z-index: 999999999;
-            pointer-events: none;
+            display: none;
         }
         
         .content-view {
@@ -270,11 +256,33 @@
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.addEventListener('keydown', e => { if (e.key !== 'F11') e.preventDefault(); });
 
+        // Double-tap to force fullscreen
+        let lastTap = 0;
+        document.addEventListener('touchend', (e) => {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            if (tapLength < 500 && tapLength > 0) {
+                requestFullscreen();
+            }
+            lastTap = currentTime;
+        });
+
         window.addEventListener('load', async () => {
             await requestWakeLock();
             createSilentAudio();
             preventSleep();
             initDisplay();
+            
+            // Simulate double-tap to trigger fullscreen
+            setTimeout(() => {
+                const touch1 = new TouchEvent('touchend', { bubbles: true, cancelable: true });
+                document.dispatchEvent(touch1);
+                setTimeout(() => {
+                    const touch2 = new TouchEvent('touchend', { bubbles: true, cancelable: true });
+                    document.dispatchEvent(touch2);
+                }, 100);
+            }, 500);
+            
             setTimeout(requestFullscreen, 1000);
             setInterval(() => { if (!document.fullscreenElement) requestFullscreen(); }, 5000);
             setInterval(async () => { if (!wakeLock) await requestWakeLock(); }, 60000);
